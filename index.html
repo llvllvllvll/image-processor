@@ -273,7 +273,7 @@
             align-items: center;
             cursor: pointer;
             padding: 4px 0;
-            -webkit-tap-highlight-color: transparent; /* 防止移动端点击闪烁 */
+            -webkit-tap-highlight-color: transparent; 
         }
         .switch-label {
             font-size: 15px;
@@ -287,7 +287,7 @@
             width: 50px;
             height: 30px;
             flex-shrink: 0;
-            pointer-events: none; /* 让点击穿透给真正的原生 input */
+            pointer-events: none; 
         }
         .switch input {
             opacity: 0;
@@ -541,6 +541,32 @@
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
         }
         
+        /* 移动端专属长按保存 Modal */
+        #mobileSaveModal .modal-content {
+            max-width: 95vw;
+            width: 600px;
+            display: flex;
+            flex-direction: column;
+            padding: 24px;
+            background: #f2f2f6;
+        }
+        #mobileSaveContainer {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            border-radius: 16px;
+            padding: 10px 0;
+        }
+        .mobile-save-img {
+            width: 100%;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            display: block;
+            background: white;
+        }
+
         #fullPreviewModal .modal-content {
             background: transparent;
             box-shadow: none;
@@ -853,12 +879,12 @@
         </div>
 
         <div class="card" style="background: var(--card-bg);">
-            <h2>最终预览</h2>
+            <h2>导出设置</h2>
             <div class="final-preview-container">
                 <canvas id="finalPreviewCanvas" onclick="openFullPreview()"></canvas>
             </div>
-            <button class="btn btn-outline" style="width: 100%; margin-bottom: 20px;" onclick="openFullPreview()">放大预览</button>
-            <div class="pagination">
+            
+            <div class="pagination" style="margin-bottom: 20px;">
                 <button class="page-btn" id="btnPrevPage" onclick="changePage(-1)">上一页</button>
                 <div style="display: flex; align-items: center; gap: 6px;">
                     第 <input type="number" id="pageJumpInput" class="setting-number-input" style="width: 45px; padding: 4px;" value="1" onchange="jumpToPage(this.value)"> 页 
@@ -866,6 +892,7 @@
                 </div>
                 <button class="page-btn" id="btnNextPage" onclick="changePage(1)">下一页</button>
             </div>
+            
             <div class="divider"></div>
             <div class="export-controls">
                 <select id="exportRes" class="export-select">
@@ -879,7 +906,12 @@
                 </select>
                 <input type="text" id="exportSpecificId" class="export-select" placeholder="选填: 指定编号(如: 2,4,6)" style="flex: 100%;">
             </div>
-            <button class="btn" id="exportBtn" style="width: 100%; padding: 18px; font-size: 16px;" onclick="exportCollage()">处理并导出</button>
+            
+            <div style="display: flex; gap: 12px; margin-top: 10px;">
+                <button class="btn" id="btnExportPC" style="flex: 1; padding: 16px; font-size: 15px;" onclick="exportForPC()">💻 电脑一键下载</button>
+                <button class="btn btn-outline" id="btnExportMobile" style="flex: 1; padding: 16px; font-size: 15px; border: 2px solid var(--accent); font-weight: bold;" onclick="exportForMobile()">📱 手机生成并保存</button>
+            </div>
+            <div class="desc-text" style="text-align: center; margin-top: 12px; font-size: 12px;">苹果/部分安卓手机如果无法一键下载，请使用手机专用按钮</div>
         </div>
     </div>
 
@@ -914,7 +946,7 @@
                     <span>Y轴偏移</span>
                     <div class="setting-value-control">
                         <input type="number" class="setting-number-input" id="editOffsetYInp" min="-500" max="500" value="0" oninput="syncSlider('editOffsetY', this.value); drawEditCanvas();">
-                        <span class="setting-unit">px</span>
+                        <span class="setting-unitpx">px</span>
                     </div>
                 </div>
                 <input type="range" id="editOffsetY" min="-500" max="500" value="0" oninput="syncInput('editOffsetYInp', this.value); drawEditCanvas();">
@@ -934,6 +966,18 @@
                 <button class="btn" onclick="closeFullPreview()" style="box-shadow: 0 4px 12px rgba(0,0,0,0.3);">关闭预览</button>
             </div>
             <img id="fullPreviewImg">
+        </div>
+    </div>
+
+    <div class="modal" id="mobileSaveModal">
+        <div class="modal-content">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="margin: 0; color: var(--text-main);">📸 长按下方图片保存</h3>
+                <button class="btn btn-outline" style="padding: 6px 16px; font-size: 13px;" onclick="closeMobileSaveModal()">关闭</button>
+            </div>
+            <div id="mobileSaveProgress" style="text-align: center; font-size: 13px; color: var(--text-muted); margin-bottom: 10px; font-weight: bold;"></div>
+            <div id="mobileSaveContainer">
+                </div>
         </div>
     </div>
 
@@ -958,7 +1002,7 @@
         let numDragTargetIndex = -1;
 
         const DB_NAME = 'ImageProcessorDB';
-        const STORE_NAME = 'AppDataStore_v3'; // 修改数据库命名，强制清除用户的旧缓存
+        const STORE_NAME = 'AppDataStore_v3'; 
 
         function initDB() {
             return new Promise((resolve, reject) => {
@@ -1002,7 +1046,6 @@
                         layoutConfig,
                         numColor,
                         numFont,
-                        // 保存时依然记录其他设置，但不记录开关状态
                         startNumber: document.getElementById('startNumber').value,
                         numSize: document.getElementById('numSize').value,
                         numX: document.getElementById('numX').value,
@@ -1010,7 +1053,7 @@
                     }
                 };
                 store.put(dataToSave, 'latestState');
-            } catch (e) { console.warn("Auto-save skipped (data too large or error)."); }
+            } catch (e) { console.warn("Auto-save skipped."); }
         }
 
         async function loadData() {
@@ -1033,7 +1076,6 @@
                     if (numColor === '#000000') numColor = '#ffffff';
                     numFont = data.config.numFont || 'Arial, sans-serif';
 
-                    // 核心修复：坚决不从缓存中读取开关状态，强制使用默认的 false(关闭)
                     if(data.config.startNumber) document.getElementById('startNumber').value = data.config.startNumber;
 
                     const nSizeVal = data.config.numSize !== undefined ? data.config.numSize : 200;
@@ -1102,7 +1144,6 @@
         window.onload = loadData;
 
         function initCollapsibleSections() {
-            // 根据实际的 checked 状态 (都是 false) 来应用折叠类
             const isCollageMode = document.getElementById('modeSwitch').checked;
             const layoutArea = document.getElementById('layoutSettingsArea');
             if (layoutArea) {
@@ -1137,13 +1178,10 @@
 
         function toggleMode() {
             isCollageMode = document.getElementById('modeSwitch').checked;
-            
             const layoutArea = document.getElementById('layoutSettingsArea');
             if(isCollageMode) layoutArea.classList.remove('collapsed');
             else layoutArea.classList.add('collapsed');
-            
             document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
-
             currentPreviewPage = 0;
             updateLivePreview();
             drawNumPosPreview();
@@ -1158,7 +1196,6 @@
                 else numSection.classList.add('collapsed');
             }
             document.getElementById('numCard').classList.toggle('collapsed-card', !showNum);
-
             updateLivePreview();
             drawNumPosPreview();
             saveData();
@@ -1250,13 +1287,10 @@
             stickers.forEach((s, idx) => {
                 const tab = document.createElement('div');
                 tab.className = `tag ${idx === currentWmIndex ? 'active' : ''}`;
-                
                 let labelPrefix = s.type === 'text' ? '字' : '图';
                 tab.innerText = `${labelPrefix} ${idx + 1}`;
-                
                 const softGreen = getComputedStyle(document.documentElement).getPropertyValue('--soft-green').trim();
                 if (s.img || s.text) tab.style.border = `2px solid ${softGreen}`;
-                
                 tab.onclick = () => switchWmTab(idx);
                 container.appendChild(tab);
             });
@@ -1287,10 +1321,7 @@
             saveData();
         }
 
-        function switchWmTab(index) {
-            currentWmIndex = index;
-            renderWmTabs();
-        }
+        function switchWmTab(index) { currentWmIndex = index; renderWmTabs(); }
 
         function syncWmUI() {
             if (!stickers[currentWmIndex]) {
@@ -1327,11 +1358,8 @@
 
         function updateWm(key, val) {
             if (!stickers[currentWmIndex]) return;
-            if (key === 'mode' || key === 'type' || key === 'text' || key === 'textColor') {
-                stickers[currentWmIndex][key] = val;
-            } else {
-                stickers[currentWmIndex][key] = parseInt(val);
-            }
+            if (key === 'mode' || key === 'type' || key === 'text' || key === 'textColor') stickers[currentWmIndex][key] = val;
+            else stickers[currentWmIndex][key] = parseInt(val);
             renderWmTabs(); 
             updateLivePreview();
             drawNumPosPreview();
@@ -1374,9 +1402,8 @@
             document.querySelectorAll('#colorPicker .color-dot').forEach(d => d.classList.remove('active'));
             const customLabel = document.querySelector('#colorPicker label[title="自定义颜色"]');
             if (customLabel) customLabel.style.border = "1px solid var(--border-light)";
-            if (el && el.classList && el.classList.contains('color-dot')) {
-                el.classList.add('active');
-            } else if (el && el.tagName === 'LABEL') {
+            if (el && el.classList && el.classList.contains('color-dot')) el.classList.add('active');
+            else if (el && el.tagName === 'LABEL') {
                 const softGreen = getComputedStyle(document.documentElement).getPropertyValue('--soft-green').trim();
                 el.style.border = `3px solid ${softGreen}`; 
             }
@@ -1399,7 +1426,7 @@
             document.getElementById('input-cols').value = cols;
             document.getElementById('input-rows').value = rows;
             document.querySelectorAll('#layoutSettingsArea .tag').forEach(btn => btn.classList.remove('active'));
-            if (document.getElementById(`btn-${cols}x${rows}`)) { document.getElementById(`btn-${cols}x${rows}`).classList.add('active'); }
+            if (document.getElementById(`btn-${cols}x${rows}`)) document.getElementById(`btn-${cols}x${rows}`).classList.add('active');
             currentPreviewPage = 0;
             updateLivePreview();
             drawNumPosPreview();
@@ -1422,10 +1449,8 @@
             let p = parseInt(pageStr) - 1;
             const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
             const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
-            
             if (isNaN(p) || p < 0) p = 0;
             if (p >= totalPages) p = totalPages - 1;
-            
             currentPreviewPage = p;
             updateLivePreview();
             drawNumPosPreview();
@@ -1525,11 +1550,7 @@
             
             const wmEnabled = document.getElementById('wmEnableSwitch').checked;
             if (wmEnabled) {
-                stickers.forEach(wm => {
-                    if (wm.mode === 'local') {
-                        renderWatermark(ctx, wm, cellW, cellH, cellX, cellY);
-                    }
-                });
+                stickers.forEach(wm => { if (wm.mode === 'local') renderWatermark(ctx, wm, cellW, cellH, cellX, cellY); });
             }
             if (document.getElementById('showNumber').checked && drawNumId !== null) {
                 const nSize = parseInt(document.getElementById('numSize').value) * (cellW / 500);
@@ -1580,9 +1601,7 @@
             const wmEnabled = document.getElementById('wmEnableSwitch').checked;
             if (wmEnabled) {
                 stickers.forEach(wm => {
-                    if (wm.mode === 'global' || !isCollageMode) {
-                        renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
-                    }
+                    if (wm.mode === 'global' || !isCollageMode) renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
                 });
             }
             return canvas;
@@ -1611,12 +1630,8 @@
             }
             const wmEnabled = document.getElementById('wmEnableSwitch').checked;
             if (wmEnabled) {
-                stickers.forEach(wm => {
-                    if (wm.mode === 'local') renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
-                });
-                stickers.forEach(wm => {
-                    if (wm.mode === 'global') renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
-                });
+                stickers.forEach(wm => { if (wm.mode === 'local') renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0); });
+                stickers.forEach(wm => { if (wm.mode === 'global') renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0); });
             }
             return canvas;
         }
@@ -1646,12 +1661,9 @@
                     previewCanvas.width = 240;
                     previewCanvas.height = 150;
                     const ctx = previewCanvas.getContext('2d');
-                    ctx.fillStyle = "#fafafa";
-                    ctx.fillRect(0, 0, 240, 150);
-                    ctx.fillStyle = "#8e8e93";
-                    ctx.font = "13px sans-serif";
-                    ctx.textAlign = "center";
-                    ctx.fillText("请导入图片", 120, 75);
+                    ctx.fillStyle = "#fafafa"; ctx.fillRect(0, 0, 240, 150);
+                    ctx.fillStyle = "#8e8e93"; ctx.font = "13px sans-serif";
+                    ctx.textAlign = "center"; ctx.fillText("请导入图片", 120, 75);
                 }
                 return;
             }
@@ -1669,41 +1681,26 @@
                 const item = imagesToDraw[0];
                 const img = item.img;
                 const iRatio = img.width / img.height;
-                
-                let drawW = wrapWidth; 
-                let drawH = drawW / iRatio; 
-                
+                let drawW = wrapWidth; let drawH = drawW / iRatio; 
                 const maxH = 450; 
-                if (drawH > maxH) {
-                    drawH = maxH;
-                    drawW = drawH * iRatio;
-                }
+                if (drawH > maxH) { drawH = maxH; drawW = drawH * iRatio; }
                 
-                previewCanvas.width = drawW;
-                previewCanvas.height = drawH;
+                previewCanvas.width = drawW; previewCanvas.height = drawH;
                 ctx.clearRect(0, 0, drawW, drawH);
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(0, 0, drawW, drawH);
-
+                ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, drawW, drawH);
                 ctx.drawImage(img, 0, 0, drawW, drawH);
 
                 const wmEnabled = document.getElementById('wmEnableSwitch').checked;
                 if (wmEnabled) {
-                    stickers.forEach(wm => {
-                        if (wm.mode === 'local') renderWatermark(ctx, wm, drawW, drawH, 0, 0);
-                    });
+                    stickers.forEach(wm => { if (wm.mode === 'local') renderWatermark(ctx, wm, drawW, drawH, 0, 0); });
                 }
-
                 if (showNum) {
                     const nSize = parseInt(document.getElementById('numSize').value) * (drawW / 500);
                     const nX = parseInt(document.getElementById('numX').value) / 100;
                     const nY = parseInt(document.getElementById('numY').value) / 100;
-                    ctx.fillStyle = numColor;
-                    ctx.font = `bold ${nSize}px ${numFont}`;
-                    ctx.textAlign = "center";
-                    ctx.textBaseline = "middle";
-                    ctx.shadowColor = "rgba(0,0,0,0.5)";
-                    ctx.shadowBlur = 4;
+                    ctx.fillStyle = numColor; ctx.font = `bold ${nSize}px ${numFont}`;
+                    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+                    ctx.shadowColor = "rgba(0,0,0,0.5)"; ctx.shadowBlur = 4;
                     ctx.fillText(globalStartNum + startIndex, drawW * nX, drawH * nY);
                     ctx.shadowBlur = 0;
                 }
@@ -1711,30 +1708,21 @@
                 const previewW = wrapWidth;
                 const cols = layoutConfig.cols;
                 const actualRows = Math.ceil(imagesToDraw.length / cols) || 1;
-                const cellW = previewW / cols;
-                const cellH = cellW / globalCellRatio;
+                const cellW = previewW / cols; const cellH = cellW / globalCellRatio;
                 const previewH = cellH * actualRows;
                 
-                previewCanvas.width = previewW;
-                previewCanvas.height = previewH;
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(0, 0, previewW, previewH);
+                previewCanvas.width = previewW; previewCanvas.height = previewH;
+                ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, previewW, previewH);
                 imagesToDraw.forEach((item, i) => {
-                    const c = i % cols;
-                    const r = Math.floor(i / cols);
+                    const c = i % cols; const r = Math.floor(i / cols);
                     const tempItem = { img: item.img, scale: item.scale, offsetX: item.offsetX, offsetY: item.offsetY };
-                    if (showNum) {
-                        drawSingleCell(ctx, tempItem, c * cellW, r * cellH, cellW, cellH, globalStartNum + startIndex + i);
-                    } else {
-                        drawSingleCell(ctx, tempItem, c * cellW, r * cellH, cellW, cellH, null);
-                    }
+                    if (showNum) drawSingleCell(ctx, tempItem, c * cellW, r * cellH, cellW, cellH, globalStartNum + startIndex + i);
+                    else drawSingleCell(ctx, tempItem, c * cellW, r * cellH, cellW, cellH, null);
                 });
                 
                 const wmEnabled = document.getElementById('wmEnableSwitch').checked;
                 if (wmEnabled) {
-                    stickers.forEach(wm => {
-                        if (wm.mode === 'global') renderWatermark(ctx, wm, previewCanvas.width, previewCanvas.height, 0, 0);
-                    });
+                    stickers.forEach(wm => { if (wm.mode === 'global') renderWatermark(ctx, wm, previewCanvas.width, previewCanvas.height, 0, 0); });
                 }
             }
         }
@@ -1742,25 +1730,21 @@
         function getNumPosOnPreview() {
             const previewCanvas = document.getElementById('numPosPreview');
             if (!previewCanvas || imageDataList.length === 0) return [];
-            const pw = previewCanvas.width;
-            const ph = previewCanvas.height;
+            const pw = previewCanvas.width; const ph = previewCanvas.height;
             const nXpct = parseInt(document.getElementById('numX').value) / 100;
             const nYpct = parseInt(document.getElementById('numY').value) / 100;
             const positions = [];
             if (!isCollageMode) {
                 positions.push({ x: pw * nXpct, y: ph * nYpct, cellW: pw, cellH: ph, idx: 0 });
             } else {
-                const cols = layoutConfig.cols;
-                const rows = layoutConfig.rows;
-                const cellW = pw / cols;
-                const cellH = cellW / globalCellRatio;
+                const cols = layoutConfig.cols; const rows = layoutConfig.rows;
+                const cellW = pw / cols; const cellH = cellW / globalCellRatio;
                 const perPage = cols * rows;
                 const startIndex = currentPreviewPage * perPage;
                 const endIndex = Math.min(startIndex + perPage, imageDataList.length);
                 const count = endIndex - startIndex;
                 for (let i = 0; i < count; i++) {
-                    const c = i % cols;
-                    const r = Math.floor(i / cols);
+                    const c = i % cols; const r = Math.floor(i / cols);
                     positions.push({ x: c * cellW + cellW * nXpct, y: r * cellH + cellH * nYpct, cellW: cellW, cellH: cellH, idx: i });
                 }
             }
@@ -1775,12 +1759,9 @@
                 if (!document.getElementById('showNumber').checked) return;
                 if (imageDataList.length === 0) return;
                 const rect = canvas.getBoundingClientRect();
-                const mx = e.clientX - rect.left;
-                const my = e.clientY - rect.top;
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                const cx = mx * scaleX;
-                const cy = my * scaleY;
+                const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+                const cx = mx * scaleX; const cy = my * scaleY;
                 const positions = getNumPosOnPreview();
                 const hitRadius = 25;
                 let found = -1;
@@ -1789,55 +1770,36 @@
                     const dist = Math.sqrt((cx - p.x) ** 2 + (cy - p.y) ** 2);
                     if (dist < hitRadius) { found = i; break; }
                 }
-                if (found >= 0) {
-                    isDraggingNum = true;
-                    numDragTargetIndex = found;
-                    wrap.classList.add('dragging-num');
-                    e.preventDefault();
-                }
+                if (found >= 0) { isDraggingNum = true; numDragTargetIndex = found; wrap.classList.add('dragging-num'); e.preventDefault(); }
             };
             window.addEventListener('mousemove', function(e) {
                 if (!isDraggingNum) return;
                 const rect = canvas.getBoundingClientRect();
-                const mx = e.clientX - rect.left;
-                const my = e.clientY - rect.top;
-                const scaleX = canvas.width / rect.width;
-                const scaleY = canvas.height / rect.height;
-                const cx = Math.max(0, Math.min(canvas.width, mx * scaleX));
-                const cy = Math.max(0, Math.min(canvas.height, my * scaleY));
+                const mx = e.clientX - rect.left; const my = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+                const cx = Math.max(0, Math.min(canvas.width, mx * scaleX)); const cy = Math.max(0, Math.min(canvas.height, my * scaleY));
                 const positions = getNumPosOnPreview();
                 if (numDragTargetIndex >= 0 && numDragTargetIndex < positions.length) {
                     const p = positions[numDragTargetIndex];
                     let newXpct = Math.round((cx - (p.x - p.cellW * (parseInt(document.getElementById('numX').value) / 100))) / p.cellW * 100);
                     let newYpct = Math.round((cy - (p.y - p.cellH * (parseInt(document.getElementById('numY').value) / 100))) / p.cellH * 100);
-                    newXpct = Math.max(0, Math.min(100, newXpct));
-                    newYpct = Math.max(0, Math.min(100, newYpct));
+                    newXpct = Math.max(0, Math.min(100, newXpct)); newYpct = Math.max(0, Math.min(100, newYpct));
                     syncSlider('numX', newXpct); syncInput('numXInp', newXpct);
                     syncSlider('numY', newYpct); syncInput('numYInp', newYpct);
-                    updateLivePreview();
-                    drawNumPosPreview();
-                    saveData();
+                    updateLivePreview(); drawNumPosPreview(); saveData();
                 }
             });
             window.addEventListener('mouseup', function() {
-                if (isDraggingNum) {
-                    isDraggingNum = false;
-                    numDragTargetIndex = -1;
-                    const wrap = document.getElementById('numPreviewWrap');
-                    if (wrap) wrap.classList.remove('dragging-num');
-                }
+                if (isDraggingNum) { isDraggingNum = false; numDragTargetIndex = -1; const wrap = document.getElementById('numPreviewWrap'); if (wrap) wrap.classList.remove('dragging-num'); }
             });
             wrap.ontouchstart = function(e) {
                 if (!document.getElementById('showNumber').checked) return;
                 if (imageDataList.length === 0) return;
                 if (e.touches.length === 1) {
                     const rect = canvas.getBoundingClientRect();
-                    const mx = e.touches[0].clientX - rect.left;
-                    const my = e.touches[0].clientY - rect.top;
-                    const scaleX = canvas.width / rect.width;
-                    const scaleY = canvas.height / rect.height;
-                    const cx = mx * scaleX;
-                    const cy = my * scaleY;
+                    const mx = e.touches[0].clientX - rect.left; const my = e.touches[0].clientY - rect.top;
+                    const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+                    const cx = mx * scaleX; const cy = my * scaleY;
                     const positions = getNumPosOnPreview();
                     const hitRadius = 30;
                     let found = -1;
@@ -1846,46 +1808,30 @@
                         const dist = Math.sqrt((cx - p.x) ** 2 + (cy - p.y) ** 2);
                         if (dist < hitRadius) { found = i; break; }
                     }
-                    if (found >= 0) {
-                        isDraggingNum = true;
-                        numDragTargetIndex = found;
-                        wrap.classList.add('dragging-num');
-                        e.preventDefault();
-                    }
+                    if (found >= 0) { isDraggingNum = true; numDragTargetIndex = found; wrap.classList.add('dragging-num'); e.preventDefault(); }
                 }
             };
             window.addEventListener('touchmove', function(e) {
                 if (!isDraggingNum) return;
                 if (e.touches.length === 1) {
                     const rect = canvas.getBoundingClientRect();
-                    const mx = e.touches[0].clientX - rect.left;
-                    const my = e.touches[0].clientY - rect.top;
-                    const scaleX = canvas.width / rect.width;
-                    const scaleY = canvas.height / rect.height;
-                    const cx = Math.max(0, Math.min(canvas.width, mx * scaleX));
-                    const cy = Math.max(0, Math.min(canvas.height, my * scaleY));
+                    const mx = e.touches[0].clientX - rect.left; const my = e.touches[0].clientY - rect.top;
+                    const scaleX = canvas.width / rect.width; const scaleY = canvas.height / rect.height;
+                    const cx = Math.max(0, Math.min(canvas.width, mx * scaleX)); const cy = Math.max(0, Math.min(canvas.height, my * scaleY));
                     const positions = getNumPosOnPreview();
                     if (numDragTargetIndex >= 0 && numDragTargetIndex < positions.length) {
                         const p = positions[numDragTargetIndex];
                         let newXpct = Math.round((cx - (p.x - p.cellW * (parseInt(document.getElementById('numX').value) / 100))) / p.cellW * 100);
                         let newYpct = Math.round((cy - (p.y - p.cellH * (parseInt(document.getElementById('numY').value) / 100))) / p.cellH * 100);
-                        newXpct = Math.max(0, Math.min(100, newXpct));
-                        newYpct = Math.max(0, Math.min(100, newYpct));
+                        newXpct = Math.max(0, Math.min(100, newXpct)); newYpct = Math.max(0, Math.min(100, newYpct));
                         syncSlider('numX', newXpct); syncInput('numXInp', newXpct);
                         syncSlider('numY', newYpct); syncInput('numYInp', newYpct);
-                        updateLivePreview();
-                        drawNumPosPreview();
-                        saveData();
+                        updateLivePreview(); drawNumPosPreview(); saveData();
                     }
                 }
             }, { passive: false });
             window.addEventListener('touchend', function() {
-                if (isDraggingNum) {
-                    isDraggingNum = false;
-                    numDragTargetIndex = -1;
-                    const wrap = document.getElementById('numPreviewWrap');
-                    if (wrap) wrap.classList.remove('dragging-num');
-                }
+                if (isDraggingNum) { isDraggingNum = false; numDragTargetIndex = -1; const wrap = document.getElementById('numPreviewWrap'); if (wrap) wrap.classList.remove('dragging-num'); }
             });
         }
 
@@ -1905,15 +1851,11 @@
             if (currentEditIndex === -1) return;
             if (!confirm("确定要删除这张图片吗？")) return;
             imageDataList.splice(currentEditIndex, 1);
-            analyzeMajorityRatio();
-            renderPreview();
+            analyzeMajorityRatio(); renderPreview();
             const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
             const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
             if (currentPreviewPage >= totalPages) currentPreviewPage = Math.max(0, totalPages - 1);
-            closeEditModal();
-            updateLivePreview();
-            drawNumPosPreview();
-            saveData();
+            closeEditModal(); updateLivePreview(); drawNumPosPreview(); saveData();
         }
 
         function saveEdit() {
@@ -1922,10 +1864,7 @@
             item.scale = parseInt(document.getElementById('editScale').value);
             item.offsetX = parseInt(document.getElementById('editOffsetX').value);
             item.offsetY = parseInt(document.getElementById('editOffsetY').value);
-            closeEditModal();
-            updateLivePreview();
-            drawNumPosPreview();
-            saveData();
+            closeEditModal(); updateLivePreview(); drawNumPosPreview(); saveData();
         }
 
         function drawEditCanvas() {
@@ -1933,16 +1872,10 @@
             const item = imageDataList[currentEditIndex];
             const canvas = document.getElementById('editCanvas');
             const ctx = canvas.getContext('2d');
-            const tempItem = {
-                img: item.img,
-                scale: parseInt(document.getElementById('editScale').value),
-                offsetX: parseInt(document.getElementById('editOffsetX').value),
-                offsetY: parseInt(document.getElementById('editOffsetY').value)
-            };
+            const tempItem = { img: item.img, scale: parseInt(document.getElementById('editScale').value), offsetX: parseInt(document.getElementById('editOffsetX').value), offsetY: parseInt(document.getElementById('editOffsetY').value) };
             canvas.width = 400;
             canvas.height = isCollageMode ? (400 / globalCellRatio) : 400 * (item.img.height / item.img.width);
-            ctx.fillStyle = "#fff";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             drawSingleCell(ctx, tempItem, 0, 0, canvas.width, canvas.height, null);
         }
 
@@ -1955,9 +1888,10 @@
 
         function closeFullPreview() { document.getElementById('fullPreviewModal').style.display = 'none'; }
 
-        async function exportCollage() {
+        // --- 电脑端一键打包导出逻辑 ---
+        async function exportForPC() {
             if (imageDataList.length === 0) { alert("请先导入图片！"); return; }
-            const btn = document.getElementById('exportBtn');
+            const btn = document.getElementById('btnExportPC');
             const format = document.getElementById('exportFormat').value;
             const mime = `image/${format}`;
             const ext = format === 'jpeg' ? 'jpg' : 'png';
@@ -1965,45 +1899,30 @@
             const startNum = parseInt(document.getElementById('startNumber').value) || 1;
             const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
             const totalPages = Math.ceil(imageDataList.length / perPage);
-            btn.innerText = "处理中...";
-            btn.disabled = true;
+            
+            btn.innerText = "处理中..."; btn.disabled = true;
             try {
                 if (specificIdRaw !== '') {
+                    // 指定编号导出
                     const idParts = specificIdRaw.split(/[,，\s]+/).filter(s => s.trim() !== '');
                     const targetIds = [];
-                    for (const part of idParts) {
-                        const num = parseInt(part);
-                        if (!isNaN(num)) targetIds.push(num);
-                    }
-                    if (targetIds.length === 0) {
-                        alert("请输入有效的编号，如: 2,4,6");
-                        btn.innerText = "处理并导出"; btn.disabled = false;
-                        return;
-                    }
-                    const invalidIds = [];
-                    for (const tid of targetIds) {
-                        const idx = tid - startNum;
-                        if (idx < 0 || idx >= imageDataList.length) invalidIds.push(tid);
-                    }
-                    if (invalidIds.length > 0) {
-                        alert(`以下编号超出范围：${invalidIds.join(', ')}。有效范围：${startNum} - ${startNum + imageDataList.length - 1}`);
-                        btn.innerText = "处理并导出"; btn.disabled = false;
-                        return;
-                    }
+                    for (const part of idParts) { const num = parseInt(part); if (!isNaN(num)) targetIds.push(num); }
+                    if (targetIds.length === 0) { alert("请输入有效的编号"); btn.innerText = "💻 电脑一键下载"; btn.disabled = false; return; }
+                    
                     for (let k = 0; k < targetIds.length; k++) {
                         const tid = targetIds[k];
                         const idx = tid - startNum;
-                        const canvas = generateSingleImageCanvas(idx, true);
-                        const a = document.createElement('a');
-                        a.href = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
-                        a.download = `Photo_${tid}.${ext}`;
-                        a.click();
-                        if (targetIds.length > 1 && k < targetIds.length - 1) {
-                            await new Promise(r => setTimeout(r, 1500));
+                        if (idx >= 0 && idx < imageDataList.length) {
+                            const canvas = generateSingleImageCanvas(idx, true);
+                            const a = document.createElement('a');
+                            a.href = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
+                            a.download = `Photo_${tid}.${ext}`;
+                            a.click();
+                            if (targetIds.length > 1 && k < targetIds.length - 1) await new Promise(r => setTimeout(r, 1000));
                         }
                     }
-                    alert(`已触发 ${targetIds.length} 张图片的下载！\n(如被浏览器拦截，请允许网站下载多个文件)`);
                 } else {
+                    // 全量导出
                     const originalPage = currentPreviewPage;
                     for (let i = 0; i < totalPages; i++) {
                         currentPreviewPage = i;
@@ -2012,21 +1931,97 @@
                         a.href = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
                         a.download = isCollageMode ? `Collage_Page_${i + 1}.${ext}` : `Photo_${startNum + i}.${ext}`;
                         a.click();
-                        if (totalPages > 1 && i < totalPages - 1) {
-                            await new Promise(r => setTimeout(r, 1500));
-                        }
+                        if (totalPages > 1 && i < totalPages - 1) await new Promise(r => setTimeout(r, 1000));
                     }
                     currentPreviewPage = originalPage;
                     updateLivePreview();
-                    alert(`已为您触发 ${totalPages} 个文件的下载！\n(如被浏览器拦截，请允许网站下载多个文件)`);
                 }
             } catch (e) {
-                console.error(e);
-                alert("导出过程中发生错误，可能是图片过大。");
+                console.error(e); alert("导出发生错误。");
             } finally {
-                btn.innerText = "处理并导出";
-                btn.disabled = false;
+                btn.innerText = "💻 电脑一键下载"; btn.disabled = false;
             }
+        }
+
+        // --- 手机端长按保存弹窗逻辑 ---
+        async function exportForMobile() {
+            if (imageDataList.length === 0) { alert("请先导入图片！"); return; }
+            
+            const modal = document.getElementById('mobileSaveModal');
+            const container = document.getElementById('mobileSaveContainer');
+            const progressText = document.getElementById('mobileSaveProgress');
+            
+            modal.style.display = 'flex';
+            container.innerHTML = '';
+            
+            const format = document.getElementById('exportFormat').value;
+            const mime = `image/${format}`;
+            const specificIdRaw = document.getElementById('exportSpecificId').value.trim();
+            const startNum = parseInt(document.getElementById('startNumber').value) || 1;
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage);
+
+            let pagesToRender = []; // 存储需要渲染的页面索引(或是单图索引)
+            let isSpecific = false;
+
+            if (specificIdRaw !== '') {
+                isSpecific = true;
+                const idParts = specificIdRaw.split(/[,，\s]+/).filter(s => s.trim() !== '');
+                for (const part of idParts) { 
+                    const num = parseInt(part); 
+                    if (!isNaN(num)) {
+                        const idx = num - startNum;
+                        if (idx >= 0 && idx < imageDataList.length) pagesToRender.push(idx);
+                    }
+                }
+            } else {
+                for (let i = 0; i < totalPages; i++) { pagesToRender.push(i); }
+            }
+
+            if (pagesToRender.length === 0) {
+                progressText.innerText = "没有匹配的图片生成";
+                return;
+            }
+
+            const originalPage = currentPreviewPage;
+
+            for (let k = 0; k < pagesToRender.length; k++) {
+                progressText.innerText = `⏳ 正在生成第 ${k + 1} / ${pagesToRender.length} 张图片，请稍候...`;
+                await new Promise(r => setTimeout(r, 50)); // 让出主线程，让 UI 更新进度文字
+                
+                let dataUrl;
+                if (isSpecific) {
+                    const canvas = generateSingleImageCanvas(pagesToRender[k], true);
+                    dataUrl = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
+                } else {
+                    currentPreviewPage = pagesToRender[k];
+                    const canvas = generateCanvas(true);
+                    dataUrl = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
+                }
+
+                const imgEl = document.createElement('img');
+                imgEl.className = 'mobile-save-img';
+                imgEl.src = dataUrl;
+                
+                // 点击放大预览逻辑 (可选)
+                imgEl.onclick = function() {
+                    document.getElementById('fullPreviewImg').src = dataUrl;
+                    document.getElementById('fullPreviewModal').style.display = 'flex';
+                };
+
+                container.appendChild(imgEl);
+            }
+
+            // 恢复原状
+            currentPreviewPage = originalPage;
+            updateLivePreview();
+            
+            progressText.innerText = `✅ 生成完毕！请长按下方图片保存至相册`;
+        }
+
+        function closeMobileSaveModal() {
+            document.getElementById('mobileSaveModal').style.display = 'none';
+            document.getElementById('mobileSaveContainer').innerHTML = '';
         }
 
         function initAll() {
@@ -2036,15 +2031,8 @@
         }
 
         const origLoadData = loadData;
-        loadData = async function() {
-            await origLoadData();
-            initAll();
-        };
-
-        window.addEventListener('DOMContentLoaded', function() {
-            setTimeout(initAll, 500);
-        });
-
+        loadData = async function() { await origLoadData(); initAll(); };
+        window.addEventListener('DOMContentLoaded', function() { setTimeout(initAll, 500); });
         window.drawNumPosPreview = drawNumPosPreview;
     </script>
 </body>
