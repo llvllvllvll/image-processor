@@ -272,7 +272,8 @@
             justify-content: space-between;
             align-items: center;
             cursor: pointer;
-            padding: 4px 0; 
+            padding: 4px 0;
+            -webkit-tap-highlight-color: transparent; /* 防止移动端点击闪烁 */
         }
         .switch-label {
             font-size: 15px;
@@ -286,12 +287,13 @@
             width: 50px;
             height: 30px;
             flex-shrink: 0;
-            pointer-events: none; 
+            pointer-events: none; /* 让点击穿透给真正的原生 input */
         }
         .switch input {
             opacity: 0;
             width: 0;
             height: 0;
+            margin: 0;
         }
         .slider {
             position: absolute;
@@ -667,15 +669,15 @@
             <div class="grid-preview" id="previewArea"></div>
         </div>
 
-        <div class="card" id="layoutCard">
-            <div class="switch-wrap" onclick="toggleCollageMode()">
+        <div class="card collapsed-card" id="layoutCard">
+            <label class="switch-wrap">
                 <h2 style="margin: 0;">排版设置</h2>
                 <div class="switch">
-                    <input type="checkbox" id="modeSwitch" checked tabindex="-1">
+                    <input type="checkbox" id="modeSwitch" onchange="toggleMode()">
                     <span class="slider"></span>
                 </div>
-            </div>
-            <div class="collapsible-section" id="layoutSettingsArea">
+            </label>
+            <div class="collapsible-section collapsed" id="layoutSettingsArea">
                 <div class="desc-text" id="modeHint" style="margin-top: 8px;">开启：组合成网格拼图。关闭：保持原图独立处理。</div>
                 <div class="divider"></div>
                 <span class="switch-label" style="display:block; margin-bottom: 12px;">网格模板 (左边为列，右边为行)</span>
@@ -692,15 +694,15 @@
             </div>
         </div>
 
-        <div class="card" id="numCard">
-            <div class="switch-wrap" onclick="toggleNumberSection()">
+        <div class="card collapsed-card" id="numCard">
+            <label class="switch-wrap">
                 <h2 style="margin: 0;">编号设置</h2>
                 <div class="switch">
-                    <input type="checkbox" id="showNumber" checked tabindex="-1">
+                    <input type="checkbox" id="showNumber" onchange="onNumberToggle()">
                     <span class="slider"></span>
                 </div>
-            </div>
-            <div class="collapsible-section" id="numberOptionsSection">
+            </label>
+            <div class="collapsible-section collapsed" id="numberOptionsSection">
                 <div class="desc-text" style="margin-top: 8px;">开启：为每张图片自动生成递增编号。关闭：隐藏所有编号。</div>
                 <div class="divider"></div>
                 <div class="setting-input-wrap">
@@ -762,15 +764,15 @@
             </div>
         </div>
 
-        <div class="card" id="wmCard">
-            <div class="switch-wrap" onclick="toggleWmSection()">
+        <div class="card collapsed-card" id="wmCard">
+            <label class="switch-wrap">
                 <h2 style="margin: 0;">水印设置</h2>
                 <div class="switch">
-                    <input type="checkbox" id="wmEnableSwitch" checked tabindex="-1">
+                    <input type="checkbox" id="wmEnableSwitch" onchange="onWmToggle()">
                     <span class="slider"></span>
                 </div>
-            </div>
-            <div class="collapsible-section" id="wmOptionsSection">
+            </label>
+            <div class="collapsible-section collapsed" id="wmOptionsSection">
                 <div class="desc-text" style="margin-top: 8px;">开启：添加可自定义位置的图文水印图层。关闭：隐藏所有水印。</div>
                 <div class="divider"></div>
                 
@@ -941,7 +943,8 @@
         let numColor = '#ffffff';
         let numFont = 'Arial, sans-serif';
         let currentEditIndex = -1;
-        let isCollageMode = true;
+        
+        let isCollageMode = false;
         let currentPreviewPage = 0;
         let globalCellRatio = 9 / 16;
 
@@ -955,12 +958,11 @@
         let numDragTargetIndex = -1;
 
         const DB_NAME = 'ImageProcessorDB';
-        const STORE_NAME = 'AppDataStore';
-        let dbInstance = null;
+        const STORE_NAME = 'AppDataStore_v3'; // 修改数据库命名，强制清除用户的旧缓存
 
         function initDB() {
             return new Promise((resolve, reject) => {
-                const req = indexedDB.open(DB_NAME, 1);
+                const req = indexedDB.open(DB_NAME, 3);
                 req.onupgradeneeded = (e) => {
                     const db = e.target.result;
                     if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -1000,10 +1002,8 @@
                         layoutConfig,
                         numColor,
                         numFont,
-                        isCollageMode,
-                        showNumber: document.getElementById('showNumber').checked,
+                        // 保存时依然记录其他设置，但不记录开关状态
                         startNumber: document.getElementById('startNumber').value,
-                        wmEnableSwitch: document.getElementById('wmEnableSwitch').checked,
                         numSize: document.getElementById('numSize').value,
                         numX: document.getElementById('numX').value,
                         numY: document.getElementById('numY').value
@@ -1028,18 +1028,17 @@
                 }
 
                 if (data.config) {
-                    layoutConfig = data.config.layoutConfig;
-                    numColor = data.config.numColor;
+                    layoutConfig = data.config.layoutConfig || { cols: 5, rows: 5 };
+                    numColor = data.config.numColor || '#ffffff';
                     if (numColor === '#000000') numColor = '#ffffff';
-                    numFont = data.config.numFont;
-                    isCollageMode = data.config.isCollageMode;
-                    document.getElementById('modeSwitch').checked = isCollageMode;
-                    document.getElementById('showNumber').checked = data.config.showNumber;
-                    document.getElementById('startNumber').value = data.config.startNumber;
-                    document.getElementById('wmEnableSwitch').checked = data.config.wmEnableSwitch;
+                    numFont = data.config.numFont || 'Arial, sans-serif';
 
-                    syncSlider('numSize', data.config.numSize);
-                    syncInput('numSizeInp', data.config.numSize);
+                    // 核心修复：坚决不从缓存中读取开关状态，强制使用默认的 false(关闭)
+                    if(data.config.startNumber) document.getElementById('startNumber').value = data.config.startNumber;
+
+                    const nSizeVal = data.config.numSize !== undefined ? data.config.numSize : 200;
+                    syncSlider('numSize', nSizeVal);
+                    syncInput('numSizeInp', nSizeVal);
                     
                     const nxVal = data.config.numX !== undefined ? data.config.numX : 75;
                     const nyVal = data.config.numY !== undefined ? data.config.numY : 85;
@@ -1077,7 +1076,6 @@
                     analyzeMajorityRatio();
                 }
 
-                toggleMode(); 
                 renderPreview();
                 updateLivePreview();
                 initCollapsibleSections();
@@ -1104,6 +1102,15 @@
         window.onload = loadData;
 
         function initCollapsibleSections() {
+            // 根据实际的 checked 状态 (都是 false) 来应用折叠类
+            const isCollageMode = document.getElementById('modeSwitch').checked;
+            const layoutArea = document.getElementById('layoutSettingsArea');
+            if (layoutArea) {
+                if(isCollageMode) layoutArea.classList.remove('collapsed');
+                else layoutArea.classList.add('collapsed');
+            }
+            document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
+
             const showNum = document.getElementById('showNumber').checked;
             const numSection = document.getElementById('numberOptionsSection');
             if (numSection) {
@@ -1120,11 +1127,6 @@
             }
             document.getElementById('wmCard').classList.toggle('collapsed-card', !wmOn);
             
-            const layoutArea = document.getElementById('layoutSettingsArea');
-            if(isCollageMode) layoutArea.classList.remove('collapsed');
-            else layoutArea.classList.add('collapsed');
-            document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
-            
             document.getElementById('input-cols').value = layoutConfig.cols;
             document.getElementById('input-rows').value = layoutConfig.rows;
             document.querySelectorAll('#layoutSettingsArea .tag').forEach(btn => btn.classList.remove('active'));
@@ -1133,11 +1135,23 @@
             }
         }
 
-        function toggleNumberSection() {
-            const checkbox = document.getElementById('showNumber');
-            checkbox.checked = !checkbox.checked;
+        function toggleMode() {
+            isCollageMode = document.getElementById('modeSwitch').checked;
             
-            const showNum = checkbox.checked;
+            const layoutArea = document.getElementById('layoutSettingsArea');
+            if(isCollageMode) layoutArea.classList.remove('collapsed');
+            else layoutArea.classList.add('collapsed');
+            
+            document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
+
+            currentPreviewPage = 0;
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function onNumberToggle() {
+            const showNum = document.getElementById('showNumber').checked;
             const numSection = document.getElementById('numberOptionsSection');
             if (numSection) {
                 if (showNum) numSection.classList.remove('collapsed');
@@ -1150,11 +1164,8 @@
             saveData();
         }
 
-        function toggleWmSection() {
-            const checkbox = document.getElementById('wmEnableSwitch');
-            checkbox.checked = !checkbox.checked;
-            
-            const wmOn = checkbox.checked;
+        function onWmToggle() {
+            const wmOn = document.getElementById('wmEnableSwitch').checked;
             const wmSection = document.getElementById('wmOptionsSection');
             if (wmSection) {
                 if (wmOn) wmSection.classList.remove('collapsed');
@@ -1171,12 +1182,6 @@
             saveData();
         }
 
-        function toggleCollageMode() {
-            const checkbox = document.getElementById('modeSwitch');
-            checkbox.checked = !checkbox.checked;
-            toggleMode();
-        }
-
         function syncSlider(sliderId, value) { document.getElementById(sliderId).value = value; }
         function syncInput(inputId, value) { document.getElementById(inputId).value = value; }
 
@@ -1186,21 +1191,6 @@
             imageDataList = [];
             document.getElementById('fileInput').value = '';
             renderPreview();
-            updateLivePreview();
-            drawNumPosPreview();
-            saveData();
-        }
-
-        function toggleMode() {
-            isCollageMode = document.getElementById('modeSwitch').checked;
-            
-            const layoutArea = document.getElementById('layoutSettingsArea');
-            if(isCollageMode) layoutArea.classList.remove('collapsed');
-            else layoutArea.classList.add('collapsed');
-            
-            document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
-
-            currentPreviewPage = 0;
             updateLivePreview();
             drawNumPosPreview();
             saveData();
