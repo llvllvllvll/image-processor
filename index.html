@@ -1567,9 +1567,10 @@
                 canvas.height = baseRes / (item.img.width / item.img.height);
                 drawSingleCell(ctx, item, 0, 0, canvas.width, canvas.height, globalStartNum + startIndex);
             } else {
-                const cols = layoutConfig.cols; const rows = layoutConfig.rows;
+                const cols = layoutConfig.cols; 
+                const actualRows = Math.ceil(imagesToDraw.length / cols) || 1;
                 const cellW = baseRes; const cellH = baseRes / globalCellRatio;
-                canvas.width = cellW * cols; canvas.height = cellH * rows;
+                canvas.width = cellW * cols; canvas.height = cellH * actualRows;
                 ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 imagesToDraw.forEach((item, i) => {
                     const c = i % cols; const r = Math.floor(i / cols);
@@ -1709,10 +1710,10 @@
             } else {
                 const previewW = wrapWidth;
                 const cols = layoutConfig.cols;
-                const rows = layoutConfig.rows;
+                const actualRows = Math.ceil(imagesToDraw.length / cols) || 1;
                 const cellW = previewW / cols;
                 const cellH = cellW / globalCellRatio;
-                const previewH = cellH * rows;
+                const previewH = cellH * actualRows;
                 
                 previewCanvas.width = previewW;
                 previewCanvas.height = previewH;
@@ -1998,7 +1999,7 @@
                         a.download = `Photo_${tid}.${ext}`;
                         a.click();
                         if (targetIds.length > 1 && k < targetIds.length - 1) {
-                            await new Promise(r => setTimeout(r, 300));
+                            await new Promise(r => setTimeout(r, 1500));
                         }
                     }
                     alert(`已触发 ${targetIds.length} 张图片的下载！\n(如被浏览器拦截，请允许网站下载多个文件)`);
@@ -2012,7 +2013,7 @@
                         a.download = isCollageMode ? `Collage_Page_${i + 1}.${ext}` : `Photo_${startNum + i}.${ext}`;
                         a.click();
                         if (totalPages > 1 && i < totalPages - 1) {
-                            await new Promise(r => setTimeout(r, 300));
+                            await new Promise(r => setTimeout(r, 1500));
                         }
                     }
                     currentPreviewPage = originalPage;
