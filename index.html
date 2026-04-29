@@ -184,12 +184,10 @@
         }
 
         .upload-area {
-            border: 1px dashed #d1d1d6;
-            border-radius: 20px;
-            padding: 30px 20px;
+            /* 去掉了虚线边框和灰色背景，变为纯提示文本 */
+            padding: 10px 5px 0 5px;
             text-align: center;
-            cursor: pointer;
-            background: #fafafa;
+            cursor: default;
         }
 
         .grid-preview {
@@ -688,10 +686,12 @@
                 <button class="btn" onclick="document.getElementById('fileInput').click()" style="flex: 2;">上传文件</button>
                 <button class="btn btn-danger-outline" onclick="clearAllImages()" style="flex: 1;">全部清空</button>
             </div>
-            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
-                <div class="desc-text">拖拽可调整缩略图顺序。<br>点击单张图片可进行精确缩放与裁剪。<br>自动适应横/竖屏网格。</div>
-                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;" onchange="handleFiles(event)">
+            
+            <div class="upload-area" id="uploadArea">
+                <div class="desc-text" style="margin-bottom: 0;">拖拽可调整缩略图顺序。<br>点击单张图片可进行精确缩放与裁剪。<br>自动适应横/竖屏网格。</div>
+                <input type="file" id="fileInput" multiple="multiple" accept="image/jpeg, image/png, image/webp, image/*" style="display: none;" onchange="handleFiles(event)">
             </div>
+            
             <div class="grid-preview" id="previewArea"></div>
         </div>
 
