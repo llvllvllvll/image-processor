@@ -1,0 +1,2060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>如月 - 专业图片处理器</title>
+    <style>
+        :root {
+            /* ▼▼▼ 在这里调整背景圆点的样式 ▼▼▼ */
+            --dot-size: 1px;        
+            --dot-space: 40px;      
+            --dot-opacity: 0.15;    
+            
+            --dot-half: calc(var(--dot-space) / 2);
+            
+            --bg-color: #f2f2f6;
+            --card-bg: #ffffff;
+            --text-main: #1c1c1e;
+            --text-muted: #8e8e93;
+            --accent: #1c1c1e;
+            --border-light: #e5e5ea;
+            --btn-gray: #f2f2f7;
+            
+            /* 统一且降低饱和度的柔和配色 */
+            --soft-red: #D27979;   /* 灰调玫瑰红，温和不刺眼 */
+            --soft-green: #A3C1AD; /* 参考原图的柔和豆沙绿 */
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", Arial, sans-serif;
+            background-color: #4A4A6E;
+            background-image: 
+                radial-gradient(circle, rgba(255,255,255, var(--dot-opacity)) var(--dot-size), transparent var(--dot-size)),
+                radial-gradient(circle, rgba(255,255,255, var(--dot-opacity)) var(--dot-size), transparent var(--dot-size)),
+                linear-gradient(180deg, #4A4A6E 0%, #8880A1 100%);
+            background-size: 
+                var(--dot-space) var(--dot-space), 
+                var(--dot-space) var(--dot-space), 
+                100% 100%;
+            background-position: 
+                0 0, 
+                var(--dot-half) var(--dot-half), 
+                0 0;
+            background-attachment: fixed;
+            
+            color: var(--text-main);
+            margin: 0;
+            padding: 70px 20px 40px 20px;
+            display: flex;
+            justify-content: center;
+            -webkit-font-smoothing: antialiased;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* --- 专属署名 UI --- */
+        .branding {
+            position: absolute;
+            top: 20px;
+            left: 24px;
+            color: white;
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            line-height: 1.2;
+            z-index: 10;
+        }
+        .branding span {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            opacity: 0.8;
+            letter-spacing: 2px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            padding-bottom: 40px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border-radius: 32px;
+            padding: 32px;
+            margin-bottom: 20px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+            transition: background 0.3s ease, border 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid transparent;
+        }
+
+        .card.collapsed-card {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        .card.collapsed-card h2,
+        .card.collapsed-card .switch-label,
+        .card.collapsed-card .desc-text {
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+        }
+        .card.collapsed-card .divider {
+            display: none;
+        }
+
+        h2 {
+            font-size: 16px;
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 24px;
+            color: var(--text-main);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: color 0.3s ease;
+        }
+        .divider {
+            height: 1px;
+            background-color: var(--border-light);
+            margin: 20px 0;
+        }
+        .desc-text {
+            color: var(--text-muted);
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 16px;
+            transition: color 0.3s ease;
+        }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            border-radius: 100px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn:active {
+            opacity: 0.8;
+        }
+        .btn-outline {
+            background: transparent;
+            color: var(--text-main);
+            border: 1px solid var(--border-light);
+        }
+        .btn-danger {
+            background: var(--soft-red);
+            color: white;
+        }
+        .btn-danger-outline {
+            background: transparent;
+            color: var(--soft-red);
+            border: 1px solid var(--soft-red);
+        }
+
+        .tag-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .tag {
+            background: var(--btn-gray);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 100px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+        }
+        .tag.active {
+            background: var(--text-main);
+            color: white;
+        }
+
+        .upload-area {
+            border: 1px dashed #d1d1d6;
+            border-radius: 20px;
+            padding: 30px 20px;
+            text-align: center;
+            cursor: pointer;
+            background: #fafafa;
+        }
+
+        .grid-preview {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .thumb-wrap {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-light);
+            cursor: grab;
+            background: #fafafa;
+            aspect-ratio: 1;
+            transition: border 0.2s;
+        }
+        .thumb-wrap.dragging {
+            opacity: 0.5;
+        }
+        .thumb-wrap img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        .thumb-badge {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+        .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(255, 255, 255, 0.9);
+            color: var(--soft-red);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .custom-layout {
+            display: flex;
+            gap: 12px;
+            margin-top: 15px;
+            align-items: center;
+        }
+        .custom-layout input {
+            flex: 1;
+            min-width: 0; 
+            padding: 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 12px;
+            text-align: center;
+            font-size: 14px;
+            outline: none;
+            background: var(--btn-gray);
+            box-sizing: border-box;
+        }
+
+        .switch-wrap {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            padding: 4px 0; 
+        }
+        .switch-label {
+            font-size: 15px;
+            font-weight: 600;
+            pointer-events: none;
+            transition: color 0.3s ease;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 30px;
+            flex-shrink: 0;
+            pointer-events: none; 
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #e5e5ea;
+            transition: .3s;
+            border-radius: 30px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 2px;
+            bottom: 2px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+        }
+        input:checked+.slider {
+            background-color: var(--soft-green);
+        }
+        input:checked+.slider:before {
+            transform: translateX(20px);
+        }
+
+        .setting-row {
+            margin-bottom: 24px;
+        }
+        .setting-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .setting-row-header>span {
+            font-size: 14px;
+            color: var(--text-main);
+            font-weight: 500;
+        }
+        .setting-value-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .setting-number-input {
+            width: 50px;
+            padding: 6px 8px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            text-align: center;
+            font-size: 13px;
+            outline: none;
+            background: var(--btn-gray);
+            font-family: inherit;
+            color: var(--text-main);
+            font-weight: 600;
+        }
+        .setting-unit {
+            color: var(--text-muted);
+            font-size: 12px;
+            font-weight: 500;
+            width: 18px;
+            text-align: right;
+        }
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #e5e5ea;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .setting-input-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .setting-input-wrap input[type="number"] {
+            width: 80px;
+            padding: 8px 12px;
+            border: 1px solid var(--border-light);
+            border-radius: 10px;
+            text-align: center;
+            font-size: 14px;
+            outline: none;
+            background: var(--btn-gray);
+            font-weight: bold;
+        }
+
+        .color-picker {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            padding: 4px;
+        }
+        .color-dot {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid var(--border-light);
+            box-sizing: border-box;
+            transition: transform 0.2s;
+        }
+        .color-dot.active {
+            border: 3px solid var(--accent);
+            transform: scale(1.1);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        input[type="radio"] {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+        }
+
+        .sticker-preview-box {
+            display: none;
+            margin-top: 15px;
+            border: 1px solid var(--border-light);
+            padding: 15px;
+            border-radius: 16px;
+            text-align: center;
+            background: #fafafa;
+        }
+        .sticker-preview-box img {
+            max-height: 60px;
+            max-width: 100%;
+            object-fit: contain;
+        }
+
+        .final-preview-container {
+            width: 100%;
+            border: 1px solid var(--border-light);
+            border-radius: 20px;
+            overflow: hidden;
+            background: #f9f9f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            min-height: 200px;
+            margin-bottom: 15px;
+        }
+        #finalPreviewCanvas {
+            max-width: 100%;
+            max-height: 60vh;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+            background: white;
+            cursor: zoom-in;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .page-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-weight: bold;
+            cursor: pointer;
+            padding: 8px;
+        }
+        .page-btn:disabled {
+            color: var(--border-light);
+            cursor: not-allowed;
+        }
+
+        .export-controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+        .export-select {
+            flex: 1;
+            min-width: 120px;
+            padding: 14px;
+            border-radius: 14px;
+            border: 1px solid var(--border-light);
+            color: var(--text-main);
+            background: var(--btn-gray);
+            font-weight: 600;
+            outline: none;
+            font-size: 14px;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: white;
+            padding: 32px;
+            border-radius: 36px;
+            width: 90%;
+            max-width: 380px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        #fullPreviewModal .modal-content {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            max-width: 95vw;
+        }
+        #fullPreviewImg {
+            max-width: 100%;
+            max-height: 85vh; 
+            object-fit: contain; 
+            display: block;
+            border-radius: 16px;
+            background: white;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .modal-canvas-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            background: #fafafa;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            padding: 16px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-light);
+        }
+        #editCanvas {
+            max-width: 100%;
+            max-height: 40vh;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            background: white;
+        }
+        .modal-btns {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        .modal-btn {
+            flex: 1;
+        }
+
+        .num-preview-wrap {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 16px;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 2px solid var(--border-light);
+            background: #fafafa;
+            cursor: default;
+        }
+        #numPosPreview {
+            display: block;
+            max-width: 100%;
+            cursor: default;
+        }
+        .num-preview-wrap.dragging-num {
+            cursor: grabbing;
+        }
+        .num-preview-wrap.dragging-num #numPosPreview {
+            cursor: grabbing;
+        }
+
+        .collapsible-section {
+            transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease;
+            overflow: hidden;
+            max-height: 2500px;
+            opacity: 1;
+        }
+        .collapsible-section.collapsed {
+            max-height: 0;
+            opacity: 0;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+
+        @media (max-width: 600px) {
+            body {
+                padding: 60px 15px 30px 15px; 
+            }
+            .branding {
+                top: 15px;
+                left: 20px;
+                font-size: 20px;
+            }
+            .card {
+                padding: 24px 20px; 
+                border-radius: 28px;
+            }
+            .custom-layout input {
+                padding: 12px 8px; 
+                font-size: 13px;
+            }
+            .modal-btns {
+                flex-wrap: wrap; 
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="branding">
+        如月
+        <span>专业图片处理器</span>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <h2>导入图片</h2>
+            <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                <button class="btn" onclick="document.getElementById('fileInput').click()" style="flex: 2;">上传文件</button>
+                <button class="btn btn-danger-outline" onclick="clearAllImages()" style="flex: 1;">全部清空</button>
+            </div>
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="desc-text">拖拽可调整缩略图顺序。<br>点击单张图片可进行精确缩放与裁剪。<br>自动适应横/竖屏网格。</div>
+                <input type="file" id="fileInput" multiple accept="image/*" style="display: none;" onchange="handleFiles(event)">
+            </div>
+            <div class="grid-preview" id="previewArea"></div>
+        </div>
+
+        <div class="card" id="layoutCard">
+            <div class="switch-wrap" onclick="toggleCollageMode()">
+                <h2 style="margin: 0;">排版设置</h2>
+                <div class="switch">
+                    <input type="checkbox" id="modeSwitch" checked tabindex="-1">
+                    <span class="slider"></span>
+                </div>
+            </div>
+            <div class="collapsible-section" id="layoutSettingsArea">
+                <div class="desc-text" id="modeHint" style="margin-top: 8px;">开启：组合成网格拼图。关闭：保持原图独立处理。</div>
+                <div class="divider"></div>
+                <span class="switch-label" style="display:block; margin-bottom: 12px;">网格模板 (左边为列，右边为行)</span>
+                <div class="tag-group">
+                    <div class="tag" id="btn-4x2" onclick="setLayout(4, 2)">4 × 2</div>
+                    <div class="tag active" id="btn-5x5" onclick="setLayout(5, 5)">5 × 5</div>
+                    <div class="tag" id="btn-5x8" onclick="setLayout(5, 8)">5 × 8</div>
+                </div>
+                <div class="custom-layout">
+                    <input type="number" id="input-cols" value="5" min="1" placeholder="列数" onchange="updateCustomLayout()">
+                    <span style="color: var(--text-muted); font-weight: bold;">×</span>
+                    <input type="number" id="input-rows" value="5" min="1" placeholder="行数" onchange="updateCustomLayout()">
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="numCard">
+            <div class="switch-wrap" onclick="toggleNumberSection()">
+                <h2 style="margin: 0;">编号设置</h2>
+                <div class="switch">
+                    <input type="checkbox" id="showNumber" checked tabindex="-1">
+                    <span class="slider"></span>
+                </div>
+            </div>
+            <div class="collapsible-section" id="numberOptionsSection">
+                <div class="desc-text" style="margin-top: 8px;">开启：为每张图片自动生成递增编号。关闭：隐藏所有编号。</div>
+                <div class="divider"></div>
+                <div class="setting-input-wrap">
+                    <span class="switch-label">起始编号</span>
+                    <input type="number" id="startNumber" value="1" onchange="saveData(); updateLivePreview(); renderPreview();">
+                </div>
+                <span class="switch-label" style="display:block; margin-bottom: 12px;">字体样式</span>
+                <div class="tag-group" id="fontSelector" style="margin-bottom: 24px;">
+                    <div class="tag active" style="font-family: Arial, sans-serif;" onclick="setFont('Arial, sans-serif', this)">Arial</div>
+                    <div class="tag" style="font-family: 'Times New Roman', serif;" onclick="setFont('\'Times New Roman\', serif', this)">Times</div>
+                    <div class="tag" style="font-family: Impact, sans-serif;" onclick="setFont('Impact, sans-serif', this)">Impact</div>
+                    <div class="tag" style="font-family: Georgia, serif;" onclick="setFont('Georgia, serif', this)">Georgia</div>
+                </div>
+                <span class="switch-label" style="display:block; margin-bottom: 12px;">颜色</span>
+                <div class="color-picker" id="colorPicker" style="margin-bottom: 24px;">
+                    <div class="color-dot active" style="background: #ffffff;" onclick="setColor('#ffffff', this)"></div>
+                    <label style="cursor:pointer; width: 32px; height: 32px; border-radius: 50%; border: 1px solid var(--border-light); background: conic-gradient(red, yellow, green, cyan, blue, magenta, red); display: inline-block; position: relative;" title="自定义颜色">
+                        <input type="color" onchange="setColor(this.value, this.parentElement)" style="opacity: 0; width: 100%; height: 100%; position: absolute; left: 0; top: 0; cursor: pointer;">
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-row-header">
+                        <span>大小</span>
+                        <div class="setting-value-control">
+                            <input type="number" class="setting-number-input" id="numSizeInp" min="20" max="500" value="200" oninput="syncSlider('numSize', this.value); updateLivePreview(); drawNumPosPreview();">
+                            <span class="setting-unit">px</span>
+                        </div>
+                    </div>
+                    <input type="range" id="numSize" min="20" max="500" value="200" oninput="syncInput('numSizeInp', this.value); updateLivePreview(); drawNumPosPreview();" onchange="saveData()">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-row-header">
+                        <span>X轴位置</span>
+                        <div class="setting-value-control">
+                            <input type="number" class="setting-number-input" id="numXInp" min="0" max="100" value="75" oninput="syncSlider('numX', this.value); updateLivePreview(); drawNumPosPreview();">
+                            <span class="setting-unit">%</span>
+                        </div>
+                    </div>
+                    <input type="range" id="numX" min="0" max="100" value="75" oninput="syncInput('numXInp', this.value); updateLivePreview(); drawNumPosPreview();" onchange="saveData()">
+                </div>
+
+                <div class="setting-row">
+                    <div class="setting-row-header">
+                        <span>Y轴位置</span>
+                        <div class="setting-value-control">
+                            <input type="number" class="setting-number-input" id="numYInp" min="0" max="100" value="85" oninput="syncSlider('numY', this.value); updateLivePreview(); drawNumPosPreview();">
+                            <span class="setting-unit">%</span>
+                        </div>
+                    </div>
+                    <input type="range" id="numY" min="0" max="100" value="85" oninput="syncInput('numYInp', this.value); updateLivePreview(); drawNumPosPreview();" onchange="saveData()">
+                </div>
+
+                <div class="desc-text" style="text-align:center; margin-bottom:4px;">在下方预览中拖动编号可调整位置</div>
+                <div class="num-preview-wrap" id="numPreviewWrap">
+                    <canvas id="numPosPreview"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" id="wmCard">
+            <div class="switch-wrap" onclick="toggleWmSection()">
+                <h2 style="margin: 0;">水印设置</h2>
+                <div class="switch">
+                    <input type="checkbox" id="wmEnableSwitch" checked tabindex="-1">
+                    <span class="slider"></span>
+                </div>
+            </div>
+            <div class="collapsible-section" id="wmOptionsSection">
+                <div class="desc-text" style="margin-top: 8px;">开启：添加可自定义位置的图文水印图层。关闭：隐藏所有水印。</div>
+                <div class="divider"></div>
+                
+                <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div class="tag-group" id="wmTabsContainer" style="gap: 5px;"></div>
+                    <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="addWmLayer('image')">+ 加图片水印</button>
+                    <button class="btn btn-outline" style="font-size: 12px; padding: 6px 12px;" onclick="addWmLayer('text')">+ 加文字水印</button>
+                </div>
+
+                <div id="wmImageSection" style="display: none;">
+                    <button class="btn btn-outline" style="width: 100%; margin-bottom: 15px;" onclick="document.getElementById('stickerInput').click()">选择/更换图片</button>
+                    <input type="file" id="stickerInput" accept="image/*" style="display: none;" onchange="handleSticker(event)">
+                    <div class="sticker-preview-box" id="stickerPreviewBox">
+                        <img id="stickerImgDisplay" src="">
+                    </div>
+                </div>
+
+                <div id="wmTextSection" style="display: none; margin-bottom: 15px;">
+                    <input type="text" id="wmTextInput" placeholder="输入文字 (支持表情包 😊)" oninput="updateWm('text', this.value)" style="width: 100%; padding: 14px; border-radius: 12px; border: 1px solid var(--border-light); margin-bottom: 12px; font-size: 14px; outline: none; background: var(--btn-gray); box-sizing: border-box;">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                        <span style="font-size: 14px; font-weight: 500;">文字颜色：</span>
+                        <input type="color" id="wmTextColorInput" onchange="updateWm('textColor', this.value)" style="width: 40px; height: 32px; border: none; cursor: pointer; background: transparent;">
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; text-align: center;">
+                    <div class="radio-group" id="watermarkModeGroup" style="justify-content: center; margin-bottom: 15px; display: flex;">
+                        <label><input type="radio" name="wmMode" value="local" onchange="updateWm('mode', 'local')"> 单图内水印</label>
+                        <label><input type="radio" name="wmMode" value="global" onchange="updateWm('mode', 'global')"> 全局大水印</label>
+                    </div>
+                    <button class="btn btn-danger" style="font-size: 13px; padding: 8px 16px;" onclick="clearStickerContent()">清除内容</button>
+                    <button class="btn btn-danger-outline" style="font-size: 13px; padding: 8px 16px; margin-left: 10px;" onclick="deleteWmLayer()">删除此图层</button>
+                </div>
+
+                <div style="margin-top: 24px;">
+                    <div class="setting-row">
+                        <div class="setting-row-header">
+                            <span>透明度</span>
+                            <div class="setting-value-control">
+                                <input type="number" class="setting-number-input" id="stkAlphaInp" min="0" max="100" value="100" oninput="syncSlider('stkAlpha', this.value); updateWm('alpha', this.value);">
+                                <span class="setting-unit">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="stkAlpha" min="0" max="100" value="100" oninput="syncInput('stkAlphaInp', this.value); updateWm('alpha', this.value);" onchange="saveData()">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-row-header">
+                            <span>缩放比例</span>
+                            <div class="setting-value-control">
+                                <input type="number" class="setting-number-input" id="stkSizeInp" min="5" max="300" value="100" oninput="syncSlider('stkSize', this.value); updateWm('size', this.value);">
+                                <span class="setting-unit">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="stkSize" min="5" max="300" value="100" oninput="syncInput('stkSizeInp', this.value); updateWm('size', this.value);" onchange="saveData()">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-row-header">
+                            <span>X轴位置</span>
+                            <div class="setting-value-control">
+                                <input type="number" class="setting-number-input" id="stkXInp" min="0" max="100" value="50" oninput="syncSlider('stkX', this.value); updateWm('x', this.value);">
+                                <span class="setting-unit">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="stkX" min="0" max="100" value="50" oninput="syncInput('stkXInp', this.value); updateWm('x', this.value);" onchange="saveData()">
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-row-header">
+                            <span>Y轴位置</span>
+                            <div class="setting-value-control">
+                                <input type="number" class="setting-number-input" id="stkYInp" min="0" max="100" value="50" oninput="syncSlider('stkY', this.value); updateWm('y', this.value);">
+                                <span class="setting-unit">%</span>
+                            </div>
+                        </div>
+                        <input type="range" id="stkY" min="0" max="100" value="50" oninput="syncInput('stkYInp', this.value); updateWm('y', this.value);" onchange="saveData()">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card" style="background: var(--card-bg);">
+            <h2>最终预览</h2>
+            <div class="final-preview-container">
+                <canvas id="finalPreviewCanvas" onclick="openFullPreview()"></canvas>
+            </div>
+            <button class="btn btn-outline" style="width: 100%; margin-bottom: 20px;" onclick="openFullPreview()">放大预览</button>
+            <div class="pagination">
+                <button class="page-btn" id="btnPrevPage" onclick="changePage(-1)">上一页</button>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    第 <input type="number" id="pageJumpInput" class="setting-number-input" style="width: 45px; padding: 4px;" value="1" onchange="jumpToPage(this.value)"> 页 
+                    <span id="pageIndicator" style="color: var(--text-muted); font-size: 13px;">/ 共 1 页</span>
+                </div>
+                <button class="page-btn" id="btnNextPage" onclick="changePage(1)">下一页</button>
+            </div>
+            <div class="divider"></div>
+            <div class="export-controls">
+                <select id="exportRes" class="export-select">
+                    <option value="original">分辨率：原图 (最大)</option>
+                    <option value="800">分辨率：高清 (800px)</option>
+                    <option value="500" selected>分辨率：标准 (500px)</option>
+                </select>
+                <select id="exportFormat" class="export-select">
+                    <option value="jpeg" selected>格式：JPG</option>
+                    <option value="png">格式：PNG</option>
+                </select>
+                <input type="text" id="exportSpecificId" class="export-select" placeholder="选填: 指定编号(如: 2,4,6)" style="flex: 100%;">
+            </div>
+            <button class="btn" id="exportBtn" style="width: 100%; padding: 18px; font-size: 16px;" onclick="exportCollage()">处理并导出</button>
+        </div>
+    </div>
+
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <h2 style="text-align: center;">调整裁剪</h2>
+            <div class="modal-canvas-wrap">
+                <canvas id="editCanvas"></canvas>
+            </div>
+            <div class="setting-row">
+                <div class="setting-row-header">
+                    <span>缩放</span>
+                    <div class="setting-value-control">
+                        <input type="number" class="setting-number-input" id="editScaleInp" min="10" max="300" value="100" oninput="syncSlider('editScale', this.value); drawEditCanvas();">
+                        <span class="setting-unit">%</span>
+                    </div>
+                </div>
+                <input type="range" id="editScale" min="10" max="300" value="100" oninput="syncInput('editScaleInp', this.value); drawEditCanvas();">
+            </div>
+            <div class="setting-row">
+                <div class="setting-row-header">
+                    <span>X轴偏移</span>
+                    <div class="setting-value-control">
+                        <input type="number" class="setting-number-input" id="editOffsetXInp" min="-500" max="500" value="0" oninput="syncSlider('editOffsetX', this.value); drawEditCanvas();">
+                        <span class="setting-unit">px</span>
+                    </div>
+                </div>
+                <input type="range" id="editOffsetX" min="-500" max="500" value="0" oninput="syncInput('editOffsetXInp', this.value); drawEditCanvas();">
+            </div>
+            <div class="setting-row">
+                <div class="setting-row-header">
+                    <span>Y轴偏移</span>
+                    <div class="setting-value-control">
+                        <input type="number" class="setting-number-input" id="editOffsetYInp" min="-500" max="500" value="0" oninput="syncSlider('editOffsetY', this.value); drawEditCanvas();">
+                        <span class="setting-unit">px</span>
+                    </div>
+                </div>
+                <input type="range" id="editOffsetY" min="-500" max="500" value="0" oninput="syncInput('editOffsetYInp', this.value); drawEditCanvas();">
+            </div>
+            
+            <div class="modal-btns">
+                <button class="btn btn-danger-outline modal-btn" style="flex: 1; padding: 14px 10px;" onclick="deleteFromEdit()">删除此图</button>
+                <button class="btn btn-outline modal-btn" style="flex: 1; padding: 14px 10px;" onclick="closeEditModal()">取消</button>
+                <button class="btn modal-btn" style="flex: 1; padding: 14px 10px;" onclick="saveEdit()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="fullPreviewModal">
+        <div class="modal-content">
+            <div style="text-align: right; margin-bottom: 16px; width: 100%; max-width: fit-content; align-self: flex-end;">
+                <button class="btn" onclick="closeFullPreview()" style="box-shadow: 0 4px 12px rgba(0,0,0,0.3);">关闭预览</button>
+            </div>
+            <img id="fullPreviewImg">
+        </div>
+    </div>
+
+    <script>
+        let imageDataList = [];
+        let layoutConfig = { cols: 5, rows: 5 }; 
+        let numColor = '#ffffff';
+        let numFont = 'Arial, sans-serif';
+        let currentEditIndex = -1;
+        let isCollageMode = true;
+        let currentPreviewPage = 0;
+        let globalCellRatio = 9 / 16;
+
+        let stickers = [
+            { id: 1, type: 'image', text: '', textColor: '#ffffff', img: null, srcBase64: null, alpha: 100, size: 100, x: 50, y: 50, mode: 'local' }
+        ];
+        let currentWmIndex = 0;
+        let stickerIdCounter = 1;
+
+        let isDraggingNum = false;
+        let numDragTargetIndex = -1;
+
+        const DB_NAME = 'ImageProcessorDB';
+        const STORE_NAME = 'AppDataStore';
+        let dbInstance = null;
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const req = indexedDB.open(DB_NAME, 1);
+                req.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                req.onsuccess = (e) => { dbInstance = e.target.result; resolve(); };
+                req.onerror = (e) => { reject(e); };
+            });
+        }
+
+        async function saveData() {
+            if (!dbInstance) return;
+            try {
+                const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const dataToSave = {
+                    images: imageDataList.map(item => ({
+                        src: item.img.src,
+                        offsetX: item.offsetX,
+                        offsetY: item.offsetY,
+                        scale: item.scale
+                    })),
+                    stickers: stickers.map(s => ({
+                        id: s.id,
+                        type: s.type || 'image',
+                        text: s.text || '',
+                        textColor: s.textColor || '#ffffff',
+                        src: s.srcBase64,
+                        alpha: s.alpha,
+                        size: s.size,
+                        x: s.x,
+                        y: s.y,
+                        mode: s.mode
+                    })),
+                    config: {
+                        layoutConfig,
+                        numColor,
+                        numFont,
+                        isCollageMode,
+                        showNumber: document.getElementById('showNumber').checked,
+                        startNumber: document.getElementById('startNumber').value,
+                        wmEnableSwitch: document.getElementById('wmEnableSwitch').checked,
+                        numSize: document.getElementById('numSize').value,
+                        numX: document.getElementById('numX').value,
+                        numY: document.getElementById('numY').value
+                    }
+                };
+                store.put(dataToSave, 'latestState');
+            } catch (e) { console.warn("Auto-save skipped (data too large or error)."); }
+        }
+
+        async function loadData() {
+            await initDB();
+            const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.get('latestState');
+
+            req.onsuccess = async (e) => {
+                const data = e.target.result;
+                if (!data) {
+                    initCollapsibleSections();
+                    drawNumPosPreview();
+                    return;
+                }
+
+                if (data.config) {
+                    layoutConfig = data.config.layoutConfig;
+                    numColor = data.config.numColor;
+                    if (numColor === '#000000') numColor = '#ffffff';
+                    numFont = data.config.numFont;
+                    isCollageMode = data.config.isCollageMode;
+                    document.getElementById('modeSwitch').checked = isCollageMode;
+                    document.getElementById('showNumber').checked = data.config.showNumber;
+                    document.getElementById('startNumber').value = data.config.startNumber;
+                    document.getElementById('wmEnableSwitch').checked = data.config.wmEnableSwitch;
+
+                    syncSlider('numSize', data.config.numSize);
+                    syncInput('numSizeInp', data.config.numSize);
+                    
+                    const nxVal = data.config.numX !== undefined ? data.config.numX : 75;
+                    const nyVal = data.config.numY !== undefined ? data.config.numY : 85;
+                    syncSlider('numX', nxVal);
+                    syncInput('numXInp', nxVal);
+                    syncSlider('numY', nyVal);
+                    syncInput('numYInp', nyVal);
+                }
+
+                if (data.stickers && data.stickers.length > 0) {
+                    stickers = await Promise.all(data.stickers.map(async s => {
+                        let imgObj = null;
+                        if (s.src) imgObj = await loadImageAsync(s.src);
+                        stickerIdCounter = Math.max(stickerIdCounter, s.id);
+                        return { 
+                            ...s, 
+                            type: s.type || 'image',
+                            text: s.text || '',
+                            textColor: s.textColor || '#ffffff',
+                            img: imgObj, 
+                            srcBase64: s.src 
+                        };
+                    }));
+                    stickerIdCounter++;
+                }
+
+                if (data.images && data.images.length > 0) {
+                    const loadedImages = await Promise.all(data.images.map(async item => {
+                        const imgObj = await loadImageAsync(item.src);
+                        let s = item.scale;
+                        if (s === undefined || s === null || s < 5) s = 100;
+                        return { img: imgObj, offsetX: item.offsetX || 0, offsetY: item.offsetY || 0, scale: s };
+                    }));
+                    imageDataList = loadedImages;
+                    analyzeMajorityRatio();
+                }
+
+                toggleMode(); 
+                renderPreview();
+                updateLivePreview();
+                initCollapsibleSections();
+                drawNumPosPreview();
+                renderWmTabs();
+
+                document.querySelectorAll('#colorPicker .color-dot').forEach(d => d.classList.remove('active'));
+                const matchDot = document.querySelector(`#colorPicker .color-dot[style*="${numColor}"]`);
+                if (matchDot) matchDot.classList.add('active');
+                const customLabel = document.querySelector('#colorPicker label[title="自定义颜色"]');
+                if (customLabel) customLabel.style.border = "1px solid var(--border-light)";
+            };
+        }
+
+        function loadImageAsync(src) {
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => resolve(null);
+                img.src = src;
+            });
+        }
+
+        window.onload = loadData;
+
+        function initCollapsibleSections() {
+            const showNum = document.getElementById('showNumber').checked;
+            const numSection = document.getElementById('numberOptionsSection');
+            if (numSection) {
+                if (showNum) numSection.classList.remove('collapsed');
+                else numSection.classList.add('collapsed');
+            }
+            document.getElementById('numCard').classList.toggle('collapsed-card', !showNum);
+
+            const wmOn = document.getElementById('wmEnableSwitch').checked;
+            const wmSection = document.getElementById('wmOptionsSection');
+            if (wmSection) {
+                if (wmOn) wmSection.classList.remove('collapsed');
+                else wmSection.classList.add('collapsed');
+            }
+            document.getElementById('wmCard').classList.toggle('collapsed-card', !wmOn);
+            
+            const layoutArea = document.getElementById('layoutSettingsArea');
+            if(isCollageMode) layoutArea.classList.remove('collapsed');
+            else layoutArea.classList.add('collapsed');
+            document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
+            
+            document.getElementById('input-cols').value = layoutConfig.cols;
+            document.getElementById('input-rows').value = layoutConfig.rows;
+            document.querySelectorAll('#layoutSettingsArea .tag').forEach(btn => btn.classList.remove('active'));
+            if (document.getElementById(`btn-${layoutConfig.cols}x${layoutConfig.rows}`)) { 
+                document.getElementById(`btn-${layoutConfig.cols}x${layoutConfig.rows}`).classList.add('active'); 
+            }
+        }
+
+        function toggleNumberSection() {
+            const checkbox = document.getElementById('showNumber');
+            checkbox.checked = !checkbox.checked;
+            
+            const showNum = checkbox.checked;
+            const numSection = document.getElementById('numberOptionsSection');
+            if (numSection) {
+                if (showNum) numSection.classList.remove('collapsed');
+                else numSection.classList.add('collapsed');
+            }
+            document.getElementById('numCard').classList.toggle('collapsed-card', !showNum);
+
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function toggleWmSection() {
+            const checkbox = document.getElementById('wmEnableSwitch');
+            checkbox.checked = !checkbox.checked;
+            
+            const wmOn = checkbox.checked;
+            const wmSection = document.getElementById('wmOptionsSection');
+            if (wmSection) {
+                if (wmOn) wmSection.classList.remove('collapsed');
+                else wmSection.classList.add('collapsed');
+            }
+            document.getElementById('wmCard').classList.toggle('collapsed-card', !wmOn);
+
+            if (wmOn && stickers.length === 0) {
+                stickers.push({ id: stickerIdCounter++, type: 'image', text: '', textColor: '#ffffff', img: null, srcBase64: null, alpha: 100, size: 100, x: 50, y: 50, mode: 'local' });
+                currentWmIndex = 0;
+                renderWmTabs();
+            }
+            updateLivePreview();
+            saveData();
+        }
+
+        function toggleCollageMode() {
+            const checkbox = document.getElementById('modeSwitch');
+            checkbox.checked = !checkbox.checked;
+            toggleMode();
+        }
+
+        function syncSlider(sliderId, value) { document.getElementById(sliderId).value = value; }
+        function syncInput(inputId, value) { document.getElementById(inputId).value = value; }
+
+        function clearAllImages() {
+            if (imageDataList.length === 0) return;
+            if (!confirm("确定要清空所有导入的图片吗？")) return;
+            imageDataList = [];
+            document.getElementById('fileInput').value = '';
+            renderPreview();
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function toggleMode() {
+            isCollageMode = document.getElementById('modeSwitch').checked;
+            
+            const layoutArea = document.getElementById('layoutSettingsArea');
+            if(isCollageMode) layoutArea.classList.remove('collapsed');
+            else layoutArea.classList.add('collapsed');
+            
+            document.getElementById('layoutCard').classList.toggle('collapsed-card', !isCollageMode);
+
+            currentPreviewPage = 0;
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function handleFiles(event) {
+            const files = Array.from(event.target.files);
+            if (files.length === 0) return;
+            let loaded = 0;
+            files.forEach((file) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        imageDataList.push({ img: img, offsetX: 0, offsetY: 0, scale: 100 });
+                        loaded++;
+                        if (loaded === files.length) {
+                            analyzeMajorityRatio();
+                            renderPreview();
+                            currentPreviewPage = 0;
+                            updateLivePreview();
+                            drawNumPosPreview();
+                            saveData();
+                        }
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+            event.target.value = '';
+        }
+
+        function analyzeMajorityRatio() {
+            if (imageDataList.length === 0) return;
+            let landscapeCount = 0;
+            let portraitCount = 0;
+            imageDataList.forEach(data => { if (data.img.width > data.img.height) landscapeCount++; else portraitCount++; });
+            globalCellRatio = landscapeCount > portraitCount ? 16 / 9 : 9 / 16;
+        }
+
+        function deleteImage(index, event) {
+            event.stopPropagation();
+            imageDataList.splice(index, 1);
+            analyzeMajorityRatio();
+            renderPreview();
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
+            if (currentPreviewPage >= totalPages) currentPreviewPage = Math.max(0, totalPages - 1);
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function renderWmTabs() {
+            const container = document.getElementById('wmTabsContainer');
+            container.innerHTML = '';
+            stickers.forEach((s, idx) => {
+                const tab = document.createElement('div');
+                tab.className = `tag ${idx === currentWmIndex ? 'active' : ''}`;
+                
+                let labelPrefix = s.type === 'text' ? '字' : '图';
+                tab.innerText = `${labelPrefix} ${idx + 1}`;
+                
+                const softGreen = getComputedStyle(document.documentElement).getPropertyValue('--soft-green').trim();
+                if (s.img || s.text) tab.style.border = `2px solid ${softGreen}`;
+                
+                tab.onclick = () => switchWmTab(idx);
+                container.appendChild(tab);
+            });
+            syncWmUI();
+        }
+
+        function addWmLayer(type) {
+            stickers.push({ id: stickerIdCounter++, type: type, text: '', textColor: '#ffffff', img: null, srcBase64: null, alpha: 100, size: 100, x: 50, y: 50, mode: 'local' });
+            currentWmIndex = stickers.length - 1;
+            renderWmTabs();
+            saveData();
+        }
+
+        function deleteWmLayer() {
+            if (stickers.length === 0) return;
+            stickers.splice(currentWmIndex, 1);
+            if (stickers.length === 0) {
+                document.getElementById('wmEnableSwitch').checked = false;
+                const wmSection = document.getElementById('wmOptionsSection');
+                if (wmSection) wmSection.classList.add('collapsed');
+                document.getElementById('wmCard').classList.add('collapsed-card');
+                currentWmIndex = -1;
+            } else {
+                currentWmIndex = Math.max(0, currentWmIndex - 1);
+            }
+            renderWmTabs();
+            updateLivePreview();
+            saveData();
+        }
+
+        function switchWmTab(index) {
+            currentWmIndex = index;
+            renderWmTabs();
+        }
+
+        function syncWmUI() {
+            if (!stickers[currentWmIndex]) {
+                document.getElementById('wmImageSection').style.display = 'none';
+                document.getElementById('wmTextSection').style.display = 'none';
+                return;
+            }
+            const wm = stickers[currentWmIndex];
+            syncSlider('stkAlpha', wm.alpha); syncInput('stkAlphaInp', wm.alpha);
+            syncSlider('stkSize', wm.size); syncInput('stkSizeInp', wm.size);
+            syncSlider('stkX', wm.x); syncInput('stkXInp', wm.x);
+            syncSlider('stkY', wm.y); syncInput('stkYInp', wm.y);
+
+            if (wm.mode === 'local') document.querySelector('input[name="wmMode"][value="local"]').checked = true;
+            else if (document.querySelector('input[name="wmMode"][value="global"]')) document.querySelector('input[name="wmMode"][value="global"]').checked = true;
+
+            if (wm.type === 'text') {
+                document.getElementById('wmImageSection').style.display = 'none';
+                document.getElementById('wmTextSection').style.display = 'block';
+                document.getElementById('wmTextInput').value = wm.text || '';
+                document.getElementById('wmTextColorInput').value = wm.textColor || '#ffffff';
+            } else {
+                document.getElementById('wmImageSection').style.display = 'block';
+                document.getElementById('wmTextSection').style.display = 'none';
+                if (wm.img) {
+                    document.getElementById('stickerPreviewBox').style.display = 'block';
+                    document.getElementById('stickerImgDisplay').src = wm.img.src;
+                } else {
+                    document.getElementById('stickerPreviewBox').style.display = 'none';
+                    document.getElementById('stickerImgDisplay').src = '';
+                }
+            }
+        }
+
+        function updateWm(key, val) {
+            if (!stickers[currentWmIndex]) return;
+            if (key === 'mode' || key === 'type' || key === 'text' || key === 'textColor') {
+                stickers[currentWmIndex][key] = val;
+            } else {
+                stickers[currentWmIndex][key] = parseInt(val);
+            }
+            renderWmTabs(); 
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function handleSticker(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    stickers[currentWmIndex].img = img;
+                    stickers[currentWmIndex].srcBase64 = e.target.result;
+                    renderWmTabs();
+                    updateLivePreview();
+                    drawNumPosPreview();
+                    saveData();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = '';
+        }
+
+        function clearStickerContent() {
+            if (!stickers[currentWmIndex]) return;
+            stickers[currentWmIndex].img = null;
+            stickers[currentWmIndex].srcBase64 = null;
+            stickers[currentWmIndex].text = '';
+            renderWmTabs();
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function setColor(hex, el) {
+            numColor = hex;
+            document.querySelectorAll('#colorPicker .color-dot').forEach(d => d.classList.remove('active'));
+            const customLabel = document.querySelector('#colorPicker label[title="自定义颜色"]');
+            if (customLabel) customLabel.style.border = "1px solid var(--border-light)";
+            if (el && el.classList && el.classList.contains('color-dot')) {
+                el.classList.add('active');
+            } else if (el && el.tagName === 'LABEL') {
+                const softGreen = getComputedStyle(document.documentElement).getPropertyValue('--soft-green').trim();
+                el.style.border = `3px solid ${softGreen}`; 
+            }
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function setFont(font, el) {
+            numFont = font;
+            document.querySelectorAll('#fontSelector .tag').forEach(d => d.classList.remove('active'));
+            el.classList.add('active');
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function setLayout(cols, rows) {
+            layoutConfig = { cols, rows };
+            document.getElementById('input-cols').value = cols;
+            document.getElementById('input-rows').value = rows;
+            document.querySelectorAll('#layoutSettingsArea .tag').forEach(btn => btn.classList.remove('active'));
+            if (document.getElementById(`btn-${cols}x${rows}`)) { document.getElementById(`btn-${cols}x${rows}`).classList.add('active'); }
+            currentPreviewPage = 0;
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function updateCustomLayout() { setLayout(parseInt(document.getElementById('input-cols').value) || 1, parseInt(document.getElementById('input-rows').value) || 1); }
+
+        function changePage(delta) {
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
+            currentPreviewPage += delta;
+            if (currentPreviewPage < 0) currentPreviewPage = 0;
+            if (currentPreviewPage >= totalPages) currentPreviewPage = totalPages - 1;
+            updateLivePreview();
+            drawNumPosPreview();
+        }
+
+        function jumpToPage(pageStr) {
+            let p = parseInt(pageStr) - 1;
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
+            
+            if (isNaN(p) || p < 0) p = 0;
+            if (p >= totalPages) p = totalPages - 1;
+            
+            currentPreviewPage = p;
+            updateLivePreview();
+            drawNumPosPreview();
+        }
+
+        function renderPreview() {
+            const area = document.getElementById('previewArea');
+            area.innerHTML = '';
+            const startNum = parseInt(document.getElementById('startNumber').value) || 1;
+            imageDataList.forEach((item, index) => {
+                const wrap = document.createElement('div');
+                wrap.className = 'thumb-wrap';
+                wrap.draggable = true;
+                wrap.onclick = () => openEditModal(index);
+                wrap.ondragstart = (e) => { e.dataTransfer.setData('text/plain', index); wrap.classList.add('dragging'); };
+                wrap.ondragend = () => wrap.classList.remove('dragging');
+                wrap.ondragover = (e) => { 
+                    e.preventDefault(); 
+                    const softGreen = getComputedStyle(document.documentElement).getPropertyValue('--soft-green').trim();
+                    wrap.style.border = `2px dashed ${softGreen}`; 
+                };
+                wrap.ondragleave = () => wrap.style.border = "1px solid var(--border-light)";
+                wrap.ondrop = (e) => {
+                    e.preventDefault();
+                    wrap.style.border = "1px solid var(--border-light)";
+                    const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
+                    if (fromIndex === index) return;
+                    const movedItem = imageDataList.splice(fromIndex, 1)[0];
+                    imageDataList.splice(index, 0, movedItem);
+                    renderPreview();
+                    updateLivePreview();
+                    drawNumPosPreview();
+                    saveData();
+                };
+                const img = document.createElement('img');
+                img.src = item.img.src;
+                const badge = document.createElement('div');
+                badge.className = 'thumb-badge';
+                badge.innerText = startNum + index;
+                const del = document.createElement('div');
+                del.className = 'delete-btn';
+                del.innerHTML = '×';
+                del.onclick = (e) => deleteImage(index, e);
+                wrap.appendChild(img);
+                wrap.appendChild(badge);
+                wrap.appendChild(del);
+                area.appendChild(wrap);
+            });
+        }
+
+        function renderWatermark(ctx, wm, targetW, targetH, offsetX = 0, offsetY = 0) {
+            if (wm.type === 'text') {
+                if (!wm.text) return;
+                ctx.save();
+                ctx.globalAlpha = wm.alpha / 100;
+                ctx.fillStyle = wm.textColor || '#ffffff';
+                let fontSize = (targetW / 10) * (wm.size / 100); 
+                ctx.font = `bold ${fontSize}px sans-serif`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                const wmX = offsetX + targetW * (wm.x / 100);
+                const wmY = offsetY + targetH * (wm.y / 100);
+                ctx.fillText(wm.text, wmX, wmY);
+                ctx.restore();
+            } else {
+                if (!wm.img) return;
+                ctx.save();
+                ctx.globalAlpha = wm.alpha / 100;
+                const wmW = targetW * (wm.size / 100);
+                const wmH = wmW * (wm.img.height / wm.img.width);
+                const wmX = offsetX + (targetW - wmW) * (wm.x / 100);
+                const wmY = offsetY + (targetH - wmH) * (wm.y / 100);
+                ctx.drawImage(wm.img, wmX, wmY, wmW, wmH);
+                ctx.restore();
+            }
+        }
+
+        function drawSingleCell(ctx, item, cellX, cellY, cellW, cellH, drawNumId = null) {
+            ctx.save();
+            ctx.beginPath();
+            ctx.rect(cellX, cellY, cellW, cellH);
+            ctx.clip();
+            const img = item.img;
+            const scale = item.scale / 100;
+            const iRatio = img.width / img.height;
+            const cRatio = cellW / cellH;
+            let drawW, drawH;
+            if (iRatio > cRatio) { drawH = cellH; drawW = cellH * iRatio; }
+            else { drawW = cellW; drawH = cellW / iRatio; }
+            drawW *= scale;
+            drawH *= scale;
+            const dx = cellX + (cellW - drawW) / 2 + item.offsetX;
+            const dy = cellY + (cellH - drawH) / 2 + item.offsetY;
+            ctx.drawImage(img, dx, dy, drawW, drawH);
+            
+            const wmEnabled = document.getElementById('wmEnableSwitch').checked;
+            if (wmEnabled) {
+                stickers.forEach(wm => {
+                    if (wm.mode === 'local') {
+                        renderWatermark(ctx, wm, cellW, cellH, cellX, cellY);
+                    }
+                });
+            }
+            if (document.getElementById('showNumber').checked && drawNumId !== null) {
+                const nSize = parseInt(document.getElementById('numSize').value) * (cellW / 500);
+                const nX = parseInt(document.getElementById('numX').value) / 100;
+                const nY = parseInt(document.getElementById('numY').value) / 100;
+                ctx.fillStyle = numColor;
+                ctx.font = `bold ${nSize}px ${numFont}`;
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(drawNumId, cellX + cellW * nX, cellY + cellH * nY);
+                ctx.shadowBlur = 0;
+            }
+            ctx.restore();
+        }
+
+        function generateCanvas(isExport = false) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            if (imageDataList.length === 0) { canvas.width = 500; canvas.height = 500; ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, 500, 500); return canvas; }
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const startIndex = currentPreviewPage * perPage;
+            const endIndex = Math.min(startIndex + perPage, imageDataList.length);
+            const imagesToDraw = imageDataList.slice(startIndex, endIndex);
+            const globalStartNum = parseInt(document.getElementById('startNumber').value) || 1;
+            let baseRes = 500;
+            if (isExport) {
+                const resVal = document.getElementById('exportRes').value;
+                baseRes = resVal === 'original' ? 1500 : parseInt(resVal);
+            }
+            if (!isCollageMode) {
+                const item = imagesToDraw[0];
+                canvas.width = baseRes;
+                canvas.height = baseRes / (item.img.width / item.img.height);
+                drawSingleCell(ctx, item, 0, 0, canvas.width, canvas.height, globalStartNum + startIndex);
+            } else {
+                const cols = layoutConfig.cols; const rows = layoutConfig.rows;
+                const cellW = baseRes; const cellH = baseRes / globalCellRatio;
+                canvas.width = cellW * cols; canvas.height = cellH * rows;
+                ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                imagesToDraw.forEach((item, i) => {
+                    const c = i % cols; const r = Math.floor(i / cols);
+                    drawSingleCell(ctx, item, c * cellW, r * cellH, cellW, cellH, globalStartNum + startIndex + i);
+                });
+            }
+            const wmEnabled = document.getElementById('wmEnableSwitch').checked;
+            if (wmEnabled) {
+                stickers.forEach(wm => {
+                    if (wm.mode === 'global' || !isCollageMode) {
+                        renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
+                    }
+                });
+            }
+            return canvas;
+        }
+
+        function generateSingleImageCanvas(itemIndex, isExport = false) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const item = imageDataList[itemIndex];
+            const globalStartNum = parseInt(document.getElementById('startNumber').value) || 1;
+            const numId = globalStartNum + itemIndex;
+            let baseRes = 500;
+            if (isExport) {
+                const resVal = document.getElementById('exportRes').value;
+                baseRes = resVal === 'original' ? 1500 : parseInt(resVal);
+            }
+            if (!isCollageMode) {
+                canvas.width = baseRes;
+                canvas.height = baseRes / (item.img.width / item.img.height);
+                drawSingleCell(ctx, item, 0, 0, canvas.width, canvas.height, numId);
+            } else {
+                const cellW = baseRes; const cellH = baseRes / globalCellRatio;
+                canvas.width = cellW; canvas.height = cellH;
+                ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                drawSingleCell(ctx, item, 0, 0, cellW, cellH, numId);
+            }
+            const wmEnabled = document.getElementById('wmEnableSwitch').checked;
+            if (wmEnabled) {
+                stickers.forEach(wm => {
+                    if (wm.mode === 'local') renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
+                });
+                stickers.forEach(wm => {
+                    if (wm.mode === 'global') renderWatermark(ctx, wm, canvas.width, canvas.height, 0, 0);
+                });
+            }
+            return canvas;
+        }
+
+        function updateLivePreview() {
+            const previewCanvas = document.getElementById('finalPreviewCanvas');
+            const ctx = previewCanvas.getContext('2d');
+            const generated = generateCanvas(false);
+            previewCanvas.width = generated.width;
+            previewCanvas.height = generated.height;
+            ctx.drawImage(generated, 0, 0);
+            
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
+            
+            document.getElementById('pageIndicator').innerText = `/ 共 ${totalPages} 页`;
+            document.getElementById('pageJumpInput').value = currentPreviewPage + 1;
+            
+            document.getElementById('btnPrevPage').disabled = (currentPreviewPage === 0);
+            document.getElementById('btnNextPage').disabled = (currentPreviewPage >= totalPages - 1);
+        }
+
+        function drawNumPosPreview() {
+            const previewCanvas = document.getElementById('numPosPreview');
+            if (!previewCanvas || imageDataList.length === 0) {
+                if (previewCanvas) {
+                    previewCanvas.width = 240;
+                    previewCanvas.height = 150;
+                    const ctx = previewCanvas.getContext('2d');
+                    ctx.fillStyle = "#fafafa";
+                    ctx.fillRect(0, 0, 240, 150);
+                    ctx.fillStyle = "#8e8e93";
+                    ctx.font = "13px sans-serif";
+                    ctx.textAlign = "center";
+                    ctx.fillText("请导入图片", 120, 75);
+                }
+                return;
+            }
+            const showNum = document.getElementById('showNumber').checked;
+            const ctx = previewCanvas.getContext('2d');
+            const wrapWidth = Math.min(document.getElementById('numPreviewWrap').clientWidth - 4, 280);
+            
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const startIndex = currentPreviewPage * perPage;
+            const endIndex = Math.min(startIndex + perPage, imageDataList.length);
+            const imagesToDraw = imageDataList.slice(startIndex, endIndex);
+            const globalStartNum = parseInt(document.getElementById('startNumber').value) || 1;
+
+            if (!isCollageMode) {
+                const item = imagesToDraw[0];
+                const img = item.img;
+                const iRatio = img.width / img.height;
+                
+                let drawW = wrapWidth; 
+                let drawH = drawW / iRatio; 
+                
+                const maxH = 450; 
+                if (drawH > maxH) {
+                    drawH = maxH;
+                    drawW = drawH * iRatio;
+                }
+                
+                previewCanvas.width = drawW;
+                previewCanvas.height = drawH;
+                ctx.clearRect(0, 0, drawW, drawH);
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(0, 0, drawW, drawH);
+
+                ctx.drawImage(img, 0, 0, drawW, drawH);
+
+                const wmEnabled = document.getElementById('wmEnableSwitch').checked;
+                if (wmEnabled) {
+                    stickers.forEach(wm => {
+                        if (wm.mode === 'local') renderWatermark(ctx, wm, drawW, drawH, 0, 0);
+                    });
+                }
+
+                if (showNum) {
+                    const nSize = parseInt(document.getElementById('numSize').value) * (drawW / 500);
+                    const nX = parseInt(document.getElementById('numX').value) / 100;
+                    const nY = parseInt(document.getElementById('numY').value) / 100;
+                    ctx.fillStyle = numColor;
+                    ctx.font = `bold ${nSize}px ${numFont}`;
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.shadowColor = "rgba(0,0,0,0.5)";
+                    ctx.shadowBlur = 4;
+                    ctx.fillText(globalStartNum + startIndex, drawW * nX, drawH * nY);
+                    ctx.shadowBlur = 0;
+                }
+            } else {
+                const previewW = wrapWidth;
+                const cols = layoutConfig.cols;
+                const rows = layoutConfig.rows;
+                const cellW = previewW / cols;
+                const cellH = cellW / globalCellRatio;
+                const previewH = cellH * rows;
+                
+                previewCanvas.width = previewW;
+                previewCanvas.height = previewH;
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, previewW, previewH);
+                imagesToDraw.forEach((item, i) => {
+                    const c = i % cols;
+                    const r = Math.floor(i / cols);
+                    const tempItem = { img: item.img, scale: item.scale, offsetX: item.offsetX, offsetY: item.offsetY };
+                    if (showNum) {
+                        drawSingleCell(ctx, tempItem, c * cellW, r * cellH, cellW, cellH, globalStartNum + startIndex + i);
+                    } else {
+                        drawSingleCell(ctx, tempItem, c * cellW, r * cellH, cellW, cellH, null);
+                    }
+                });
+                
+                const wmEnabled = document.getElementById('wmEnableSwitch').checked;
+                if (wmEnabled) {
+                    stickers.forEach(wm => {
+                        if (wm.mode === 'global') renderWatermark(ctx, wm, previewCanvas.width, previewCanvas.height, 0, 0);
+                    });
+                }
+            }
+        }
+
+        function getNumPosOnPreview() {
+            const previewCanvas = document.getElementById('numPosPreview');
+            if (!previewCanvas || imageDataList.length === 0) return [];
+            const pw = previewCanvas.width;
+            const ph = previewCanvas.height;
+            const nXpct = parseInt(document.getElementById('numX').value) / 100;
+            const nYpct = parseInt(document.getElementById('numY').value) / 100;
+            const positions = [];
+            if (!isCollageMode) {
+                positions.push({ x: pw * nXpct, y: ph * nYpct, cellW: pw, cellH: ph, idx: 0 });
+            } else {
+                const cols = layoutConfig.cols;
+                const rows = layoutConfig.rows;
+                const cellW = pw / cols;
+                const cellH = cellW / globalCellRatio;
+                const perPage = cols * rows;
+                const startIndex = currentPreviewPage * perPage;
+                const endIndex = Math.min(startIndex + perPage, imageDataList.length);
+                const count = endIndex - startIndex;
+                for (let i = 0; i < count; i++) {
+                    const c = i % cols;
+                    const r = Math.floor(i / cols);
+                    positions.push({ x: c * cellW + cellW * nXpct, y: r * cellH + cellH * nYpct, cellW: cellW, cellH: cellH, idx: i });
+                }
+            }
+            return positions;
+        }
+
+        function setupNumPreviewEvents() {
+            const wrap = document.getElementById('numPreviewWrap');
+            const canvas = document.getElementById('numPosPreview');
+            if (!wrap || !canvas) return;
+            wrap.onmousedown = function(e) {
+                if (!document.getElementById('showNumber').checked) return;
+                if (imageDataList.length === 0) return;
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const cx = mx * scaleX;
+                const cy = my * scaleY;
+                const positions = getNumPosOnPreview();
+                const hitRadius = 25;
+                let found = -1;
+                for (let i = positions.length - 1; i >= 0; i--) {
+                    const p = positions[i];
+                    const dist = Math.sqrt((cx - p.x) ** 2 + (cy - p.y) ** 2);
+                    if (dist < hitRadius) { found = i; break; }
+                }
+                if (found >= 0) {
+                    isDraggingNum = true;
+                    numDragTargetIndex = found;
+                    wrap.classList.add('dragging-num');
+                    e.preventDefault();
+                }
+            };
+            window.addEventListener('mousemove', function(e) {
+                if (!isDraggingNum) return;
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const cx = Math.max(0, Math.min(canvas.width, mx * scaleX));
+                const cy = Math.max(0, Math.min(canvas.height, my * scaleY));
+                const positions = getNumPosOnPreview();
+                if (numDragTargetIndex >= 0 && numDragTargetIndex < positions.length) {
+                    const p = positions[numDragTargetIndex];
+                    let newXpct = Math.round((cx - (p.x - p.cellW * (parseInt(document.getElementById('numX').value) / 100))) / p.cellW * 100);
+                    let newYpct = Math.round((cy - (p.y - p.cellH * (parseInt(document.getElementById('numY').value) / 100))) / p.cellH * 100);
+                    newXpct = Math.max(0, Math.min(100, newXpct));
+                    newYpct = Math.max(0, Math.min(100, newYpct));
+                    syncSlider('numX', newXpct); syncInput('numXInp', newXpct);
+                    syncSlider('numY', newYpct); syncInput('numYInp', newYpct);
+                    updateLivePreview();
+                    drawNumPosPreview();
+                    saveData();
+                }
+            });
+            window.addEventListener('mouseup', function() {
+                if (isDraggingNum) {
+                    isDraggingNum = false;
+                    numDragTargetIndex = -1;
+                    const wrap = document.getElementById('numPreviewWrap');
+                    if (wrap) wrap.classList.remove('dragging-num');
+                }
+            });
+            wrap.ontouchstart = function(e) {
+                if (!document.getElementById('showNumber').checked) return;
+                if (imageDataList.length === 0) return;
+                if (e.touches.length === 1) {
+                    const rect = canvas.getBoundingClientRect();
+                    const mx = e.touches[0].clientX - rect.left;
+                    const my = e.touches[0].clientY - rect.top;
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const cx = mx * scaleX;
+                    const cy = my * scaleY;
+                    const positions = getNumPosOnPreview();
+                    const hitRadius = 30;
+                    let found = -1;
+                    for (let i = positions.length - 1; i >= 0; i--) {
+                        const p = positions[i];
+                        const dist = Math.sqrt((cx - p.x) ** 2 + (cy - p.y) ** 2);
+                        if (dist < hitRadius) { found = i; break; }
+                    }
+                    if (found >= 0) {
+                        isDraggingNum = true;
+                        numDragTargetIndex = found;
+                        wrap.classList.add('dragging-num');
+                        e.preventDefault();
+                    }
+                }
+            };
+            window.addEventListener('touchmove', function(e) {
+                if (!isDraggingNum) return;
+                if (e.touches.length === 1) {
+                    const rect = canvas.getBoundingClientRect();
+                    const mx = e.touches[0].clientX - rect.left;
+                    const my = e.touches[0].clientY - rect.top;
+                    const scaleX = canvas.width / rect.width;
+                    const scaleY = canvas.height / rect.height;
+                    const cx = Math.max(0, Math.min(canvas.width, mx * scaleX));
+                    const cy = Math.max(0, Math.min(canvas.height, my * scaleY));
+                    const positions = getNumPosOnPreview();
+                    if (numDragTargetIndex >= 0 && numDragTargetIndex < positions.length) {
+                        const p = positions[numDragTargetIndex];
+                        let newXpct = Math.round((cx - (p.x - p.cellW * (parseInt(document.getElementById('numX').value) / 100))) / p.cellW * 100);
+                        let newYpct = Math.round((cy - (p.y - p.cellH * (parseInt(document.getElementById('numY').value) / 100))) / p.cellH * 100);
+                        newXpct = Math.max(0, Math.min(100, newXpct));
+                        newYpct = Math.max(0, Math.min(100, newYpct));
+                        syncSlider('numX', newXpct); syncInput('numXInp', newXpct);
+                        syncSlider('numY', newYpct); syncInput('numYInp', newYpct);
+                        updateLivePreview();
+                        drawNumPosPreview();
+                        saveData();
+                    }
+                }
+            }, { passive: false });
+            window.addEventListener('touchend', function() {
+                if (isDraggingNum) {
+                    isDraggingNum = false;
+                    numDragTargetIndex = -1;
+                    const wrap = document.getElementById('numPreviewWrap');
+                    if (wrap) wrap.classList.remove('dragging-num');
+                }
+            });
+        }
+
+        function openEditModal(index) {
+            currentEditIndex = index;
+            const item = imageDataList[index];
+            syncSlider('editScale', item.scale); syncInput('editScaleInp', item.scale);
+            syncSlider('editOffsetX', item.offsetX); syncInput('editOffsetXInp', item.offsetX);
+            syncSlider('editOffsetY', item.offsetY); syncInput('editOffsetYInp', item.offsetY);
+            document.getElementById('editModal').style.display = 'flex';
+            drawEditCanvas();
+        }
+
+        function closeEditModal() { document.getElementById('editModal').style.display = 'none'; }
+
+        function deleteFromEdit() {
+            if (currentEditIndex === -1) return;
+            if (!confirm("确定要删除这张图片吗？")) return;
+            imageDataList.splice(currentEditIndex, 1);
+            analyzeMajorityRatio();
+            renderPreview();
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage) || 1;
+            if (currentPreviewPage >= totalPages) currentPreviewPage = Math.max(0, totalPages - 1);
+            closeEditModal();
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function saveEdit() {
+            if (currentEditIndex === -1) return;
+            const item = imageDataList[currentEditIndex];
+            item.scale = parseInt(document.getElementById('editScale').value);
+            item.offsetX = parseInt(document.getElementById('editOffsetX').value);
+            item.offsetY = parseInt(document.getElementById('editOffsetY').value);
+            closeEditModal();
+            updateLivePreview();
+            drawNumPosPreview();
+            saveData();
+        }
+
+        function drawEditCanvas() {
+            if (currentEditIndex === -1) return;
+            const item = imageDataList[currentEditIndex];
+            const canvas = document.getElementById('editCanvas');
+            const ctx = canvas.getContext('2d');
+            const tempItem = {
+                img: item.img,
+                scale: parseInt(document.getElementById('editScale').value),
+                offsetX: parseInt(document.getElementById('editOffsetX').value),
+                offsetY: parseInt(document.getElementById('editOffsetY').value)
+            };
+            canvas.width = 400;
+            canvas.height = isCollageMode ? (400 / globalCellRatio) : 400 * (item.img.height / item.img.width);
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            drawSingleCell(ctx, tempItem, 0, 0, canvas.width, canvas.height, null);
+        }
+
+        function openFullPreview() {
+            if (imageDataList.length === 0) return;
+            const dataUrl = generateCanvas(true).toDataURL('image/jpeg', 0.9);
+            document.getElementById('fullPreviewImg').src = dataUrl;
+            document.getElementById('fullPreviewModal').style.display = 'flex';
+        }
+
+        function closeFullPreview() { document.getElementById('fullPreviewModal').style.display = 'none'; }
+
+        async function exportCollage() {
+            if (imageDataList.length === 0) { alert("请先导入图片！"); return; }
+            const btn = document.getElementById('exportBtn');
+            const format = document.getElementById('exportFormat').value;
+            const mime = `image/${format}`;
+            const ext = format === 'jpeg' ? 'jpg' : 'png';
+            const specificIdRaw = document.getElementById('exportSpecificId').value.trim();
+            const startNum = parseInt(document.getElementById('startNumber').value) || 1;
+            const perPage = isCollageMode ? (layoutConfig.cols * layoutConfig.rows) : 1;
+            const totalPages = Math.ceil(imageDataList.length / perPage);
+            btn.innerText = "处理中...";
+            btn.disabled = true;
+            try {
+                if (specificIdRaw !== '') {
+                    const idParts = specificIdRaw.split(/[,，\s]+/).filter(s => s.trim() !== '');
+                    const targetIds = [];
+                    for (const part of idParts) {
+                        const num = parseInt(part);
+                        if (!isNaN(num)) targetIds.push(num);
+                    }
+                    if (targetIds.length === 0) {
+                        alert("请输入有效的编号，如: 2,4,6");
+                        btn.innerText = "处理并导出"; btn.disabled = false;
+                        return;
+                    }
+                    const invalidIds = [];
+                    for (const tid of targetIds) {
+                        const idx = tid - startNum;
+                        if (idx < 0 || idx >= imageDataList.length) invalidIds.push(tid);
+                    }
+                    if (invalidIds.length > 0) {
+                        alert(`以下编号超出范围：${invalidIds.join(', ')}。有效范围：${startNum} - ${startNum + imageDataList.length - 1}`);
+                        btn.innerText = "处理并导出"; btn.disabled = false;
+                        return;
+                    }
+                    for (let k = 0; k < targetIds.length; k++) {
+                        const tid = targetIds[k];
+                        const idx = tid - startNum;
+                        const canvas = generateSingleImageCanvas(idx, true);
+                        const a = document.createElement('a');
+                        a.href = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
+                        a.download = `Photo_${tid}.${ext}`;
+                        a.click();
+                        if (targetIds.length > 1 && k < targetIds.length - 1) {
+                            await new Promise(r => setTimeout(r, 300));
+                        }
+                    }
+                    alert(`已触发 ${targetIds.length} 张图片的下载！\n(如被浏览器拦截，请允许网站下载多个文件)`);
+                } else {
+                    const originalPage = currentPreviewPage;
+                    for (let i = 0; i < totalPages; i++) {
+                        currentPreviewPage = i;
+                        const canvas = generateCanvas(true);
+                        const a = document.createElement('a');
+                        a.href = canvas.toDataURL(mime, format === 'jpeg' ? 0.9 : 1.0);
+                        a.download = isCollageMode ? `Collage_Page_${i + 1}.${ext}` : `Photo_${startNum + i}.${ext}`;
+                        a.click();
+                        if (totalPages > 1 && i < totalPages - 1) {
+                            await new Promise(r => setTimeout(r, 300));
+                        }
+                    }
+                    currentPreviewPage = originalPage;
+                    updateLivePreview();
+                    alert(`已为您触发 ${totalPages} 个文件的下载！\n(如被浏览器拦截，请允许网站下载多个文件)`);
+                }
+            } catch (e) {
+                console.error(e);
+                alert("导出过程中发生错误，可能是图片过大。");
+            } finally {
+                btn.innerText = "处理并导出";
+                btn.disabled = false;
+            }
+        }
+
+        function initAll() {
+            initCollapsibleSections();
+            drawNumPosPreview();
+            setupNumPreviewEvents();
+        }
+
+        const origLoadData = loadData;
+        loadData = async function() {
+            await origLoadData();
+            initAll();
+        };
+
+        window.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initAll, 500);
+        });
+
+        window.drawNumPosPreview = drawNumPosPreview;
+    </script>
+</body>
+</html>
